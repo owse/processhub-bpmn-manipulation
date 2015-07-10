@@ -13,6 +13,7 @@ import java.util.*;
 
 public class ModelComposer
 {
+    // Public methods
 
     // Concatenates models in series
     public BpmnModelInstance joinModelsInSeries (List<BpmnModelInstance> modelsToJoin) {
@@ -72,87 +73,10 @@ public class ModelComposer
         return resultModel;
     }
 
-    // Builds and connects a new flowNodeToInclude to flowNodeToBeAppended
-    // Recursive method, runs while flowNodeToInclude has outgoing sequence flows.
-    private void appendTo(BpmnModelInstance modelInstance, FlowNode flowNodeToBeAppended, FlowNode flowNodeToInclude) {
-
-        // BPMN Tasks
-        if (flowNodeToInclude instanceof Task) {
-            if (flowNodeToInclude instanceof BusinessRuleTask) {
-                flowNodeToBeAppended.builder().businessRuleTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ManualTask) {
-                flowNodeToBeAppended.builder().manualTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ReceiveTask) {
-                flowNodeToBeAppended.builder().receiveTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ScriptTask) {
-                flowNodeToBeAppended.builder().scriptTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof SendTask) {
-                flowNodeToBeAppended.builder().sendTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ServiceTask) {
-                flowNodeToBeAppended.builder().serviceTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof UserTask) {
-                flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-        }
-
-        // BPMN Events
-        else if (flowNodeToInclude instanceof Event) {
-            if (flowNodeToInclude instanceof IntermediateCatchEvent) {
-                flowNodeToBeAppended.builder().intermediateCatchEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof EndEvent) {
-                flowNodeToBeAppended.builder().endEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-        }
-
-
-
-        // BPMN Gateways
-//        else if (flowNodeToInclude instanceof ParallelGateway) {
-//            ParallelGateway gateway = modelInstance.getModelElementById(flowNodeToInclude.getId());
-//            //Pode ser um gateway join... verifica se existe... na hipotese de existir, conecta e encerra o fluxo...
-//            if (gateway != null) {
-//                flowNodeToBeAppended.builder().connectTo(flowNodeToInclude.getId());
-//                return;
-//            }
-//
-//            flowNodeToBeAppended.builder().parallelGateway(flowNodeToInclude.getId());
-//            flowNodeToBeAppended = modelInstance.getModelElementById(flowNodeToInclude.getId());
-//
-//        }
-
-        flowNodeToBeAppended = modelInstance.getModelElementById(flowNodeToInclude.getId());
-
-//        if (flowNodeToInclude instanceof EndEvent) {
-//            flowNodeToBeAppended.builder().connectTo(gatewayBeforeEnd.getId());
-//        }
-
-        for (SequenceFlow sequenceFlow:flowNodeToInclude.getOutgoing()) {
-            flowNodeToInclude = sequenceFlow.getTarget();
-            //appendTo(modelInstance, flowNodeToBeAppended, flowNodeToInclude, gatewayBeforeEnd);
-            appendTo(modelInstance, flowNodeToBeAppended, flowNodeToInclude);
-        }
-
-
-    }
-
-
 
     // TODO:
     //  public BpmnModelInstance joinModelsInParallel (List<BpmnModelInstance> modelsToJoin)
+
 
 
     // Private methods
@@ -246,6 +170,88 @@ public class ModelComposer
         modelInstance.getModelElementsByType(Process.class).iterator().next().getFlowElements().remove(flowNode);
 
         return;
+    }
+
+    // Builds and connects a new flowNodeToInclude to flowNodeToBeAppended
+    // Recursive method, runs while flowNodeToInclude has outgoing sequence flows.
+    private void appendTo(BpmnModelInstance modelInstance, FlowNode flowNodeToBeAppended, FlowNode flowNodeToInclude) {
+
+        // Nothing to do
+        if (flowNodeToInclude == null){
+            return;
+        }
+
+        // If node already created, flowNodeToInclude is connected to flowNodeToBeAppended and returns
+        if (modelInstance.getModelElementById(flowNodeToInclude.getId()) != null){
+            flowNodeToBeAppended.builder().connectTo(flowNodeToInclude.getId());
+            return;
+        }
+
+        // BPMN Tasks
+        if (flowNodeToInclude instanceof Task) {
+            if (flowNodeToInclude instanceof BusinessRuleTask) {
+                flowNodeToBeAppended.builder().businessRuleTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof ManualTask) {
+                flowNodeToBeAppended.builder().manualTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof ReceiveTask) {
+                flowNodeToBeAppended.builder().receiveTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof ScriptTask) {
+                flowNodeToBeAppended.builder().scriptTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof SendTask) {
+                flowNodeToBeAppended.builder().sendTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof ServiceTask) {
+                flowNodeToBeAppended.builder().serviceTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof UserTask) {
+                flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+        }
+
+        // BPMN Events
+        else if (flowNodeToInclude instanceof Event) {
+
+            if (flowNodeToInclude instanceof IntermediateCatchEvent) {
+                flowNodeToBeAppended.builder().intermediateCatchEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+
+            else if (flowNodeToInclude instanceof EndEvent) {
+                flowNodeToBeAppended.builder().endEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
+        }
+
+        // BPMN Gateways
+        else if (flowNodeToInclude instanceof Gateway) {
+            if (flowNodeToInclude instanceof EventBasedGateway) {
+                flowNodeToBeAppended.builder().eventBasedGateway();
+            }
+
+            else if (flowNodeToInclude instanceof ExclusiveGateway) {
+                flowNodeToBeAppended.builder().exclusiveGateway(flowNodeToInclude.getId());
+            }
+
+            else if (flowNodeToInclude instanceof ParallelGateway) {
+                flowNodeToBeAppended.builder().parallelGateway(flowNodeToInclude.getId());
+            }
+        }
+
+        flowNodeToBeAppended = modelInstance.getModelElementById(flowNodeToInclude.getId());
+
+
+        for (SequenceFlow sequenceFlow:flowNodeToInclude.getOutgoing()) {
+            flowNodeToInclude = sequenceFlow.getTarget();
+            appendTo(modelInstance, flowNodeToBeAppended, flowNodeToInclude);
+        }
     }
 
 }
