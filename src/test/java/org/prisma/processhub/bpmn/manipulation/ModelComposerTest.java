@@ -10,6 +10,8 @@ import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -29,27 +31,41 @@ public class ModelComposerTest
         ModelComposer modelComposer = new ModelComposer();
 
         // read a BPMN model from an input stream
-        BpmnModelInstance modelInstance = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("diagram.bpmn"));
+        BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        BpmnModelInstance modelInstance3 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
-        List<Task> tasks =  (List) modelInstance.getModelElementsByType(Task.class);
+        Collection<FlowElement> flowElements1 = modelInstance1.getModelElementsByType(FlowElement.class);
+        Collection<FlowElement> flowElements2 = modelInstance2.getModelElementsByType(FlowElement.class);
 
-        System.out.println("Tasks: ");
-        for (Task task1: tasks) {
-            System.out.println(task1.getName());
+        List<BpmnModelInstance> modelInstances = new ArrayList<BpmnModelInstance>();
+        modelInstances.add(modelInstance1);
+        modelInstances.add(modelInstance2);
+        modelInstances.add(modelInstance3);
+
+        for (BpmnModelInstance mi: modelInstances) {
+            Collection<FlowNode> flowNodes = mi.getModelElementsByType(FlowNode.class);
+            System.out.println("Flow Nodes");
+            for (FlowNode fn: flowNodes) {
+                System.out.println(fn.getId());
+            }
+            System.out.println("\n\n");
         }
 
-        Process process = modelInstance.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Process.class).iterator().next();
-        Task task = modelInstance.getModelElementsByType(Task.class).iterator().next();
-        System.out.println("Task to remove: " + task.getName());
 
-        process.getFlowElements().remove(task);
-        //modelInstance.findProcess().getFlowElements().remove(flowElement);
-        tasks =  (List) modelInstance.getModelElementsByType(Task.class);
+        BpmnModelInstance resultModel = modelComposer.joinModelsInSeries(modelInstances);
 
-        System.out.println("Tasks: ");
-        for (Task task2: tasks) {
-            System.out.println(task2.getName());
+        Collection<FlowNode> flowNodes = resultModel.getModelElementsByType(FlowNode.class);
+
+        Collection<FlowElement> flowElements = resultModel.getModelElementsByType(FlowElement.class);
+
+        for (FlowNode fn: flowNodes) {
+            System.out.println(fn.getId());
         }
+
+        //System.out.println(Bpmn.convertToString(resultModel));
+
+
 
     }
 
