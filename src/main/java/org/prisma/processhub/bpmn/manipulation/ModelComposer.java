@@ -1,5 +1,6 @@
 package org.prisma.processhub.bpmn.manipulation;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
@@ -42,40 +43,144 @@ public class ModelComposer
 
         BpmnModelInstance resultModel = modelIt.next();
         FlowNode lastFlowNodeResult = findFlowNodeBeforeEndEvent(resultModel);
-        removeFlowNode(resultModel, findEndEvent(resultModel));
+        removeFlowNode(resultModel, findEndEvent(resultModel).getId());
 
         while (modelIt.hasNext()) {
 
             BpmnModelInstance currentModel = modelIt.next();
             StartEvent startEvent = findStartEvent(currentModel);
             FlowNode firstFlowNodeCurrent = findFlowNodeAfterStartEvent(currentModel);
-            removeFlowNode(currentModel, startEvent);
+            removeFlowNode(currentModel, startEvent.getId());
 
             appendTo(resultModel, lastFlowNodeResult, firstFlowNodeCurrent);
 
             if (modelIt.hasNext()) {
-                removeFlowNode(resultModel, findEndEvent(resultModel));
+                removeFlowNode(resultModel, findEndEvent(resultModel).getId());
             }
-
-            //currentModel = removeFlowNode(currentModel, startEvent);
-
-            // TODO:
-            //  Link the last node from result model to the first node from current model
-            //  and rebuild the current model inside the result model
-            //
-            //  Remove the end node from the result model
-
         }
-
-        // TODO:
-        //  Add an end event to the result model
-
         return resultModel;
     }
 
+    // Concatenates models in parallel
+    public BpmnModelInstance joinModelsInParallel (List<BpmnModelInstance> modelsToJoin) {
+        if (modelsToJoin == null) {
+            return null;
+        }
 
-    // TODO:
-    //  public BpmnModelInstance joinModelsInParallel (List<BpmnModelInstance> modelsToJoin)
+        if (modelsToJoin.size() == 1) {
+            return generateUniqueIds(modelsToJoin.iterator().next());
+        }
+
+        List<BpmnModelInstance> uniqueModelsToJoin = new ArrayList<BpmnModelInstance>();
+
+        // Generates unique IDs for every flow node in every model
+        for (BpmnModelInstance mi: modelsToJoin) {
+
+            // Imposes restriction of one start event and one end event per model
+            if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
+                return null;
+            }
+            uniqueModelsToJoin.add(generateUniqueIds(mi));
+        }
+
+        // Select the base model
+        Iterator<BpmnModelInstance> modelIt = uniqueModelsToJoin.iterator();
+        BpmnModelInstance resultModel = modelIt.next();
+
+        // Initialize entities related to the split gateway
+        StartEvent startEvent = findStartEvent(resultModel);
+        FlowNode firstFlowNodeResult = findFlowNodeAfterStartEvent(resultModel);
+        ParallelGateway splitGateway;
+
+        // If parallel gateway already exists, reuse it
+        if (firstFlowNodeResult instanceof ParallelGateway) {
+            splitGateway = (ParallelGateway) firstFlowNodeResult;
+        }
+        // If not, create a parallel gateway after the start event
+        else {
+            BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
+            tempModel = generateUniqueIds(tempModel);
+            splitGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
+            removeAllSequenceFlows(tempModel, splitGateway.getIncoming());
+            removeAllSequenceFlows(tempModel, splitGateway.getOutgoing());
+            insertFlowNodeBetweenFlowNodes(resultModel, splitGateway, startEvent.getId(), firstFlowNodeResult.getId());
+            splitGateway = resultModel.getModelElementById(splitGateway.getId());
+        }
+
+
+        // Initialize entities related to the join gateway
+        EndEvent endEvent = findEndEvent(resultModel);
+        FlowNode lastFlowNodeResult = findFlowNodeBeforeEndEvent(resultModel);
+        ParallelGateway joinGateway;
+
+        // If parallel gateway already exists, reuse it
+        if (lastFlowNodeResult instanceof ParallelGateway) {
+            joinGateway = (ParallelGateway) lastFlowNodeResult;
+        }
+        // If not, create a parallel gateway before the end event
+        else {
+            BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
+            tempModel = generateUniqueIds(tempModel);
+            joinGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
+            removeAllSequenceFlows(tempModel, joinGateway.getIncoming());
+            removeAllSequenceFlows(tempModel, joinGateway.getOutgoing());
+            insertFlowNodeBetweenFlowNodes(resultModel, joinGateway, lastFlowNodeResult.getId(), endEvent.getId());
+            joinGateway = resultModel.getModelElementById(joinGateway.getId());
+        }
+
+        List<FlowNode> afterStartNodes = new ArrayList<FlowNode>();
+        List<FlowNode> beforeEndNodes = new ArrayList<FlowNode>();
+
+        while (modelIt.hasNext()){
+            BpmnModelInstance mi = modelIt.next();
+
+
+            FlowNode flowNodeAfterStart = findFlowNodeAfterStartEvent(mi);
+            FlowNode flowNodeBeforeEnd = findFlowNodeBeforeEndEvent(mi);
+
+            removeFlowNode(mi, findStartEvent(mi).getId());
+            removeFlowNode(mi, findEndEvent(mi).getId());
+
+            if (flowNodeAfterStart instanceof ParallelGateway) {
+                Collection<SequenceFlow> sequenceFlows = flowNodeAfterStart.getOutgoing();
+
+                for (SequenceFlow sf: sequenceFlows) {
+                    afterStartNodes.add(sf.getTarget());
+                }
+
+                removeFlowNode(mi, flowNodeAfterStart.getId());
+            }
+            else {
+                afterStartNodes.add(flowNodeAfterStart);
+            }
+
+            if (flowNodeBeforeEnd instanceof ParallelGateway) {
+                Collection<SequenceFlow> sequenceFlows = flowNodeBeforeEnd.getIncoming();
+
+                for (SequenceFlow sf: sequenceFlows) {
+                    beforeEndNodes.add(sf.getSource());
+                }
+
+                removeFlowNode(mi, flowNodeBeforeEnd.getId());
+            }
+            else {
+                beforeEndNodes.add(flowNodeBeforeEnd);
+            }
+
+            // Connects the processes to the split gateway
+            for (FlowNode fn: afterStartNodes) {
+                appendTo(resultModel, splitGateway, fn);
+            }
+
+            // Connects the last nodes to the join gateway
+            for (FlowNode fn: beforeEndNodes) {
+                FlowNode ln = resultModel.getModelElementById(fn.getId());
+                appendTo(resultModel, ln, joinGateway);
+            }
+        }
+
+        return resultModel;
+    }
 
 
 
@@ -122,7 +227,7 @@ public class ModelComposer
     }
 
     // Returns the flow node connected to the start event
-    public FlowNode findFlowNodeAfterStartEvent (BpmnModelInstance modelInstance) {
+    private FlowNode findFlowNodeAfterStartEvent (BpmnModelInstance modelInstance) {
         StartEvent startEvent = findStartEvent(modelInstance);
         return startEvent.getOutgoing().iterator().next().getTarget();
     }
@@ -156,11 +261,12 @@ public class ModelComposer
     }
 
     // Removes a flow node and all sequence flows connected to it
-    private void removeFlowNode(BpmnModelInstance modelInstance, FlowNode flowNode) {
+    private void removeFlowNode(BpmnModelInstance modelInstance, String flowNodeId) {
 
-        if (modelInstance == null || flowNode == null) {
+        if (modelInstance == null || flowNodeId == null) {
             return;
         }
+        FlowNode flowNode = modelInstance.getModelElementById(flowNodeId);
 
         Collection<SequenceFlow> sequenceFlowsIn = flowNode.getIncoming();
         Collection<SequenceFlow> sequenceFlowsOut = flowNode.getOutgoing();
@@ -178,6 +284,10 @@ public class ModelComposer
 
         // Nothing to do
         if (flowNodeToInclude == null){
+            return;
+        }
+
+        if (modelInstance.getModelElementById(flowNodeToBeAppended.getId()) == null) {
             return;
         }
 
@@ -253,5 +363,34 @@ public class ModelComposer
             appendTo(modelInstance, flowNodeToBeAppended, flowNodeToInclude);
         }
     }
+
+    // Insert a new flow node between two flow nodes in the model
+    private void insertFlowNodeBetweenFlowNodes(BpmnModelInstance modelInstance, FlowNode newNode, String node1Id, String node2Id) {
+        FlowNode node1 = modelInstance.getModelElementById(node1Id);
+        FlowNode node2 = modelInstance.getModelElementById(node2Id);
+
+        if (node1 == null || node2 == null) {
+            return;
+        }
+
+        Iterator<SequenceFlow> sequenceFlowIt = node1.getOutgoing().iterator();
+
+        while (sequenceFlowIt.hasNext()) {
+            SequenceFlow currentSequenceFlow = sequenceFlowIt.next();
+            FlowNode targetNode = currentSequenceFlow.getTarget();
+
+            if (targetNode.getId().equals(node2.getId())) {
+                removeSequenceFlow(modelInstance, currentSequenceFlow);
+                break;
+            }
+        }
+
+        appendTo(modelInstance, node1, newNode);
+        FlowNode addedNode = modelInstance.getModelElementById(newNode.getId());
+        appendTo(modelInstance, addedNode, node2);
+
+        return;
+    }
+
 
 }
