@@ -6,11 +6,9 @@ import junit.framework.TestSuite;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
-import org.camunda.bpm.model.bpmn.instance.Task;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -82,7 +80,7 @@ public class ModelComposerTest
 
         // read a BPMN model from an input stream
         BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
         BpmnModelInstance modelInstance3 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("loop_diagram.bpmn"));
 
         // Populate the list of models to concatenate
@@ -114,5 +112,5 @@ public class ModelComposerTest
         System.out.println("\nResulting BPMN XML:\n");
         System.out.println(Bpmn.convertToString(resultModel));
     }
-    
+
 }

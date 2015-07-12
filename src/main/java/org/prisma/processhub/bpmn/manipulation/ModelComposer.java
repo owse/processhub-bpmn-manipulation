@@ -326,6 +326,10 @@ public class ModelComposer
             else if (flowNodeToInclude instanceof UserTask) {
                 flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
             }
+            // If task unspecified, set to user task
+            else {
+                flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
         }
 
         // BPMN Events
