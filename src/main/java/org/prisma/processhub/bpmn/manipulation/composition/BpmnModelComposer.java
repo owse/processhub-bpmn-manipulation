@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation;
+package org.prisma.processhub.bpmn.manipulation.composition;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
@@ -12,7 +12,7 @@ import java.util.*;
 //  Input models must have only one process
 
 
-public class ModelComposer
+public class BpmnModelComposer
 {
     // Public methods
 

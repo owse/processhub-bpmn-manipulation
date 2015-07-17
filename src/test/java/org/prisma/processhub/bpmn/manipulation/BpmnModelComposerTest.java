@@ -6,15 +6,16 @@ import junit.framework.TestSuite;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
+import org.prisma.processhub.bpmn.manipulation.composition.BpmnModelComposer;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Unit test for simple ModelComposer.
+ * Unit test for simple BpmnModelComposer.
  */
-public class ModelComposerTest
+public class BpmnModelComposerTest
     extends TestCase
 {
     /**
@@ -22,7 +23,7 @@ public class ModelComposerTest
      *
      * @param testName name of the test case
      */
-    public ModelComposerTest(String testName)
+    public BpmnModelComposerTest(String testName)
     {
         super( testName );
     }
@@ -32,12 +33,12 @@ public class ModelComposerTest
      */
     public static Test suite()
     {
-        return new TestSuite( ModelComposerTest.class );
+        return new TestSuite( BpmnModelComposerTest.class );
     }
 
     public void testSerialProcessComposition() {
         System.out.println("Testing serial process composition\n");
-        ModelComposer modelComposer = new ModelComposer();
+        BpmnModelComposer bpmnModelComposer = new BpmnModelComposer();
 
         // read a BPMN model from an input stream
         BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -61,7 +62,7 @@ public class ModelComposerTest
             count++;
         }
 
-        BpmnModelInstance resultModel = modelComposer.joinModelsInSeries(modelInstances);
+        BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInSeries(modelInstances);
 
         Collection<FlowNode> flowNodes = resultModel.getModelElementsByType(FlowNode.class);
 
@@ -76,7 +77,7 @@ public class ModelComposerTest
 
     public void testParallelProcessComposition () {
         System.out.println("Testing parallel process composition\n");
-        ModelComposer modelComposer = new ModelComposer();
+        BpmnModelComposer bpmnModelComposer = new BpmnModelComposer();
 
         // read a BPMN model from an input stream
         BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -100,7 +101,7 @@ public class ModelComposerTest
             count++;
         }
 
-        BpmnModelInstance resultModel = modelComposer.joinModelsInParallel(modelInstances);
+        BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelInstances);
 
         Collection<FlowNode> flowNodes = resultModel.getModelElementsByType(FlowNode.class);
 
