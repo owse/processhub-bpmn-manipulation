@@ -13,7 +13,7 @@ This operator takes a list of two or more processes and perform a serial composi
 
 A simple example  is shown in Figure 01.
 
-![alt text]()
+![alt text](https://github.com/owse/processhub-bpmn-manipulation/blob/master/docs/images/SerialComposition-1.png)
 *Figure 01 -Simple serial composition scenario*
 
 The above scenario could be achieved by the execution of the following code:
@@ -26,21 +26,24 @@ List<BpmnModelInstance> modelsToJoin = new ArrayList<BpmnModelInstance>();
 modelsToJoin.add(modelInstance1);
 modelsToJoin.add(modelInstance2);
 
-ModelComposer modelComposer = new ModelComposer();
-BpmnModelInstance resultModel = modelComposer.joinModelsInSeries(modelsToJoin);
+BpmnModelComposer bpmnModelComposer = new BpmnModelComposer();
+BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInSeries(modelsToJoin);
 ```
 
 ### 2. Parallel Composition
 This operator takes a list of two or more processes and perform a parallel composition. It adds (if necessary) parallel gateways after the start event and before the end event of the first process and connects the other processes ends to these gateways. Possible scenarios are showed in Figures 02, 03 and 04.
 
-![alt text]()
+![alt text](https://github.com/owse/processhub-bpmn-manipulation/blob/master/docs/images/ParallelComposition-1.png)
 *Figure 02 - Simple parallel composition scenario*
 
-![alt text]()
+
+![alt text](https://github.com/owse/processhub-bpmn-manipulation/blob/master/docs/images/ParallelComposition-2.png)
 *Figure 03 - Parallel composition scenario with gateways already  present in the process*
 
-![alt text]()
+
+![alt text](https://github.com/owse/processhub-bpmn-manipulation/blob/master/docs/images/ParallelComposition-3.png)
 *Figure 04 - Parallel composition scenario with only one gateway already  present in the process*
+
 
 The above scenarios can be achieved by the following code:
 
@@ -52,8 +55,8 @@ List<BpmnModelInstance> modelsToJoin = new ArrayList<BpmnModelInstance>();
 modelsToJoin.add(modelInstance1);
 modelsToJoin.add(modelInstance2);
 
-ModelComposer modelComposer = new ModelComposer();
-BpmnModelInstance resultModel = modelComposer.joinModelsInParallel(modelsToJoin);
+BpmnModelComposer bpmnModelComposer = new BpmnModelComposer();
+BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelsToJoin);
 ```
 
 ### Restrictions
