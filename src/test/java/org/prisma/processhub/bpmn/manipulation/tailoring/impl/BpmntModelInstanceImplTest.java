@@ -1,14 +1,11 @@
 package org.prisma.processhub.bpmn.manipulation.tailoring.impl;
 
 import junit.framework.TestCase;
-import org.camunda.bpm.model.bpmn.impl.instance.FlowNodeImpl;
-import org.camunda.bpm.model.bpmn.instance.FlowElement;
-import org.camunda.bpm.model.bpmn.instance.FlowNode;
-import org.camunda.bpm.model.bpmn.instance.SequenceFlow;
-import org.camunda.bpm.model.bpmn.instance.Task;
+import org.camunda.bpm.model.bpmn.instance.*;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
+import java.util.Collection;
 import java.util.Iterator;
 
 public class BpmntModelInstanceImplTest extends TestCase {
@@ -66,8 +63,8 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
-    public void testDelete() throws Exception {
-        System.out.println("\n\nTesting delete:\n");
+    public void testDeleteSingleNode() throws Exception {
+        System.out.println("\n\nTesting delete (single node):\n");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
 
@@ -105,32 +102,22 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
-    // TODO: fix contribute()
-    /*
-    public void testContribute() throws Exception {
+    public void testDeleteMultipleNodes() {
+        System.out.println("\n\nTesting delete (multiple nodes)");
 
-        BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
-        BpmntModelInstance extendedModelInstance = new BpmntModelInstanceImpl();
-        extendedModelInstance.setModelInstance(modelInstance1);
+        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
 
-        Iterator<FlowElement> flowElementIterator = extendedModelInstance.getModelInstance().getModelElementsByType(FlowElement.class).iterator();
-        FlowElement flowElementToRemove = flowElementIterator.next();
+        Iterator<Gateway> gatewayIterator = modelInstance.getModelElementsByType(Gateway.class).iterator();
+        FlowNode endingNode = gatewayIterator.next();
+        FlowNode startingNode = gatewayIterator.next();
 
-        System.out.println("Flow Elements:\n");
-        while (flowElementIterator.hasNext()) {
-            System.out.println(flowElementIterator.next());
+        modelInstance.delete(startingNode, endingNode);
+
+        Collection<FlowNode> flowNodes = modelInstance.getModelElementsByType(FlowNode.class);
+        for (FlowNode fn: flowNodes) {
+            System.out.println(fn.getId());
         }
 
-        extendedModelInstance.contribute(modelInstance2.getModelElementsByType(StartEvent.class).iterator().next());
-
-        Iterator<FlowElement> flowElementIterator1 = extendedModelInstance.getModelInstance().getModelElementsByType(FlowElement.class).iterator();
-
-        System.out.println("\n\nFlow elements with element added:\n");
-        while (flowElementIterator1.hasNext()) {
-            System.out.println(flowElementIterator1.next());
-        }
-
+        Bpmnt.validateModel(modelInstance);
     }
-    */
 }

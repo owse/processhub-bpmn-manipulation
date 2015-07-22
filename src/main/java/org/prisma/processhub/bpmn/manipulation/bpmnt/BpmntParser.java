@@ -1,7 +1,5 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt;
 
-import org.camunda.bpm.model.bpmn.Bpmn;
-import org.camunda.bpm.model.bpmn.impl.BpmnParser;
 import org.camunda.bpm.model.xml.ModelValidationException;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.impl.parser.AbstractModelParser;
@@ -23,7 +21,7 @@ public class BpmntParser extends AbstractModelParser {
 
     public BpmntParser() {
         this.schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
-        URL bpmnSchema = ReflectUtil.getResource("BPMN20.xsd", BpmnParser.class.getClassLoader());
+        URL bpmnSchema = ReflectUtil.getResource("BPMN20.xsd", BpmntParser.class.getClassLoader());
 
         try {
             this.schema = this.schemaFactory.newSchema(bpmnSchema);
@@ -34,12 +32,12 @@ public class BpmntParser extends AbstractModelParser {
 
     protected void configureFactory(DocumentBuilderFactory dbf) {
         dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
-        dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaSource", ReflectUtil.getResource("BPMN20.xsd", BpmnParser.class.getClassLoader()).toString());
+        dbf.setAttribute("http://java.sun.com/xml/jaxp/properties/schemaSource", ReflectUtil.getResource("BPMN20.xsd", BpmntParser.class.getClassLoader()).toString());
         super.configureFactory(dbf);
     }
 
     protected BpmntModelInstanceImpl createModelInstance(DomDocument document) {
-        return new BpmntModelInstanceImpl((ModelImpl)Bpmn.INSTANCE.getBpmnModel(), Bpmn.INSTANCE.getBpmnModelBuilder(), document);
+        return new BpmntModelInstanceImpl((ModelImpl)Bpmnt.INSTANCE.getBpmntModel(), Bpmnt.INSTANCE.getBpmntModelBuilder(), document);
     }
 
     public BpmntModelInstanceImpl parseModelFromStream(InputStream inputStream) {
