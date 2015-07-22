@@ -5,15 +5,15 @@
       <bpmn:outgoing>SequenceFlow_1v05ioi</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="SequenceFlow_1v05ioi" sourceRef="StartEvent_1" targetRef="ParallelGateway_1c6p3yf" />
-    <bpmn:task id="Task_1liqzit" name="Parallel task A">
+    <bpmn:userTask id="Task_1liqzit" name="Parallel task A">
       <bpmn:incoming>SequenceFlow_1twbeuc</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_026blmp</bpmn:outgoing>
-    </bpmn:task>
+    </bpmn:userTask>
     <bpmn:sequenceFlow id="SequenceFlow_1twbeuc" sourceRef="ParallelGateway_1c6p3yf" targetRef="Task_1liqzit" />
-    <bpmn:task id="Task_0dae65c" name="Parallel task B">
+    <bpmn:scriptTask id="Task_0dae65c" name="Parallel task B">
       <bpmn:incoming>SequenceFlow_17nw1jn</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_07c9yqx</bpmn:outgoing>
-    </bpmn:task>
+    </bpmn:scriptTask>
     <bpmn:sequenceFlow id="SequenceFlow_17nw1jn" sourceRef="ParallelGateway_1c6p3yf" targetRef="Task_0dae65c" />
     <bpmn:sequenceFlow id="SequenceFlow_026blmp" sourceRef="Task_1liqzit" targetRef="ParallelGateway_07aj32a" />
     <bpmn:sequenceFlow id="SequenceFlow_07c9yqx" sourceRef="Task_0dae65c" targetRef="ParallelGateway_07aj32a" />
