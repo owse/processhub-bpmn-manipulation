@@ -7,6 +7,8 @@ import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.prisma.processhub.bpmn.manipulation.crud.remove.BpmnElementRemover;
+import org.prisma.processhub.bpmn.manipulation.exception.FlowElementNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.exception.FlowNodeNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
 import java.util.ArrayList;
@@ -25,23 +27,28 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     public void suppress (FlowElement targetElement) {
 
         Collection<FlowElement> flowElements = getModelElementsByType(Process.class).iterator().next().getFlowElements();
-        FlowElement targetElementInModel = getModelElementById(targetElement.getId());
-        if (targetElementInModel != null) {
-            flowElements.remove(targetElementInModel);
-        }
+        flowElements.remove(targetElement);
         return;
     }
 
+    public void suppress (String targetElementId) throws FlowElementNotFoundException {
+        FlowElement targetElement = getModelElementById(targetElementId);
+        if (targetElement == null) {
+            throw new FlowElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
+        }
+        suppress(targetElement);
+        return;
+    }
 
     // High-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    // TODO: add exception "node not found"
-    public void rename(String id, String newName) {
-        FlowElement flowElementToRename = getModelElementById(id);
-        if (flowElementToRename != null) {
-            flowElementToRename.setName(newName);
+    public void rename(String targetElementId, String newName) throws FlowElementNotFoundException {
+        FlowElement flowElementToRename = getModelElementById(targetElementId);
+        if (flowElementToRename == null) {
+            throw new FlowElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
         }
+        flowElementToRename.setName(newName);
         return;
     }
 
@@ -104,12 +111,13 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    // TODO: add exception "node not found"
-    public void delete(String targetNodeId){
+    public void delete(String targetNodeId) throws FlowNodeNotFoundException {
         FlowNode targetNode = getModelElementById(targetNodeId);
-        if (targetNode != null) {
-            delete(targetNode);
+        if (targetNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
         }
+        delete(targetNode);
+        return;
     }
 
     public void delete(FlowNode startingNode, FlowNode endingNode){
@@ -137,17 +145,24 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    // TODO: add exception "node not found"
-    public void delete(String startingNodeId, String endingNodeId){
+    public void delete(String startingNodeId, String endingNodeId) throws FlowNodeNotFoundException {
         FlowNode startingNode = getModelElementById(startingNodeId);
-        if (startingNode != null) {
-            delete(startingNode , (FlowNode) getModelElementById(endingNodeId));
+        FlowNode endingNode = getModelElementById(endingNodeId);
+
+        if (startingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
         }
+
+        if (endingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+        }
+
+        delete(startingNode , endingNode);
         return;
     }
 
     // TODO: finish implementing
-    public void replace(FlowNode targetNode, Process replacingFragment){
+    public void replace(FlowNode targetNode, Process replacingFragment) {
         if (targetNode == null || replacingFragment == null) {
             return;
         }
@@ -159,26 +174,31 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    // TODO: add exception "node not found"
-    public void replace(String targetNodeId, Process replacingFragment) {
+    public void replace(String targetNodeId, Process replacingFragment) throws FlowNodeNotFoundException {
         FlowNode targetNode = getModelElementById(targetNodeId);
-        if (targetNode != null) {
-            replace(targetNode, replacingFragment); ;
+        if (targetNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
         }
+        replace(targetNode, replacingFragment);
         return;
     }
 
-    public void replace(FlowNode targetStartingNode, FlowNode targetEndingNode, Process replacingFragment){}
+    public void replace(FlowNode startingNode, FlowNode endingNode, Process replacingFragment){}
 
     // TODO: add exception "node not found"
-    public void replace(String targetStartingNodeId, String targetEndingNodeId, Process replacingFragment){
-        FlowNode targetStartingNode = getModelElementById(targetStartingNodeId);
-        FlowNode targetEndingNode = getModelElementById(targetEndingNodeId);
+    public void replace(String startingNodeId, String endingNodeId, Process replacingFragment) throws FlowNodeNotFoundException {
+        FlowNode startingNode = getModelElementById(startingNodeId);
+        FlowNode endingNode = getModelElementById(endingNodeId);
 
-        if (targetStartingNode != null && targetEndingNode != null) {
-            replace(targetStartingNode, targetEndingNode, replacingFragment);
+        if (startingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
         }
 
+        if (endingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+        }
+
+        replace(startingNode , endingNode, replacingFragment);
         return;
     }
 
@@ -194,47 +214,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     //public void modify (FlowElement targetElement, List<String> properties);
 
     // Private helper methods
-/*
-    // Returns a BPMN model with the desired sequence flow removed
-    private void removeSequenceFlow(SequenceFlow sequenceFlow) {
 
-        if (sequenceFlow == null) {
-            return;
-        }
-
-        getModelElementsByType(Process.class).iterator().next().getFlowElements().remove(sequenceFlow);
-        return;
-    }
-
-    // Returns a BPMN model with the desired list of sequence flows removed
-    private void removeAllSequenceFlows(Collection<SequenceFlow> sequenceFlows) {
-
-        if (sequenceFlows == null) {
-            return;
-        }
-
-        getModelElementsByType(Process.class).iterator().next().getFlowElements().removeAll(sequenceFlows);
-        return;
-    }
-
-    // Removes a flow node and all sequence flows connected to it
-    private void removeFlowNode(String flowNodeId) {
-
-        if (flowNodeId == null) {
-            return;
-        }
-        FlowNode flowNode = getModelElementById(flowNodeId);
-
-        Collection<SequenceFlow> sequenceFlowsIn = flowNode.getIncoming();
-        Collection<SequenceFlow> sequenceFlowsOut = flowNode.getOutgoing();
-
-        removeAllSequenceFlows(sequenceFlowsIn);
-        removeAllSequenceFlows(sequenceFlowsOut);
-        getModelElementsByType(Process.class).iterator().next().getFlowElements().remove(flowNode);
-
-        return;
-    }
-*/
     // Returns a list with all flow nodes between startingNode and endingNode (both inclusive)
     private Collection<FlowNode> mapProcessFragment(FlowNode startingNode, FlowNode endingNode) {
         if (startingNode instanceof StartEvent || endingNode instanceof EndEvent) {
@@ -337,147 +317,5 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         }
         return true;
     }
-/*
-    // Returns the first start event found in the model
-    private StartEvent findStartEvent() {
-        return getModelElementsByType(StartEvent.class).iterator().next();
-    }
-
-    // Returns the first end event found in the model
-    private EndEvent findEndEvent() {
-        return getModelElementsByType(EndEvent.class).iterator().next();
-    }
-
-    // Returns the flow node connected to the start event
-    private FlowNode findFlowNodeAfterStartEvent () {
-        StartEvent startEvent = findStartEvent();
-        return startEvent.getOutgoing().iterator().next().getTarget();
-    }
-
-    // Returns the flow node connected to the start event
-    private FlowNode findFlowNodeBeforeEndEvent () {
-        EndEvent endEvent = findEndEvent();
-        return endEvent.getIncoming().iterator().next().getSource();
-    }
-
-    // Builds and connects a new flowNodeToInclude to flowNodeToBeAppended
-    // Recursive method, runs while flowNodeToInclude has outgoing sequence flows.
-    private void appendTo(FlowNode flowNodeToBeAppended, FlowNode flowNodeToInclude) {
-
-        // Nothing to do
-        if (flowNodeToInclude == null){
-            return;
-        }
-
-        if (getModelElementById(flowNodeToBeAppended.getId()) == null) {
-            return;
-        }
-
-        // If node already created, flowNodeToInclude is connected to flowNodeToBeAppended and returns
-        if (getModelElementById(flowNodeToInclude.getId()) != null){
-            flowNodeToBeAppended.builder().connectTo(flowNodeToInclude.getId());
-            return;
-        }
-
-        // BPMN Tasks
-        if (flowNodeToInclude instanceof Task) {
-            if (flowNodeToInclude instanceof BusinessRuleTask) {
-                flowNodeToBeAppended.builder().businessRuleTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ManualTask) {
-                flowNodeToBeAppended.builder().manualTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ReceiveTask) {
-                flowNodeToBeAppended.builder().receiveTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ScriptTask) {
-                flowNodeToBeAppended.builder().scriptTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof SendTask) {
-                flowNodeToBeAppended.builder().sendTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof ServiceTask) {
-                flowNodeToBeAppended.builder().serviceTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof UserTask) {
-                flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-            // If task unspecified, set to user task
-            else {
-                flowNodeToBeAppended.builder().userTask(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-        }
-
-        // BPMN Events
-        else if (flowNodeToInclude instanceof Event) {
-
-            if (flowNodeToInclude instanceof IntermediateCatchEvent) {
-                flowNodeToBeAppended.builder().intermediateCatchEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-
-            else if (flowNodeToInclude instanceof EndEvent) {
-                flowNodeToBeAppended.builder().endEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            }
-        }
-
-        // BPMN Gateways
-        else if (flowNodeToInclude instanceof Gateway) {
-            if (flowNodeToInclude instanceof EventBasedGateway) {
-                flowNodeToBeAppended.builder().eventBasedGateway();
-            }
-
-            else if (flowNodeToInclude instanceof ExclusiveGateway) {
-                flowNodeToBeAppended.builder().exclusiveGateway(flowNodeToInclude.getId());
-            }
-
-            else if (flowNodeToInclude instanceof ParallelGateway) {
-                flowNodeToBeAppended.builder().parallelGateway(flowNodeToInclude.getId());
-            }
-        }
-
-        flowNodeToBeAppended = getModelElementById(flowNodeToInclude.getId());
-
-
-        for (SequenceFlow sequenceFlow:flowNodeToInclude.getOutgoing()) {
-            flowNodeToInclude = sequenceFlow.getTarget();
-            appendTo(flowNodeToBeAppended, flowNodeToInclude);
-        }
-    }
-
-    // Insert a new flow node between two flow nodes in the model
-    private void insertFlowNodeBetweenFlowNodes(FlowNode newNode, String node1Id, String node2Id) {
-        FlowNode node1 = getModelElementById(node1Id);
-        FlowNode node2 = getModelElementById(node2Id);
-
-        if (node1 == null || node2 == null) {
-            return;
-        }
-
-        Iterator<SequenceFlow> sequenceFlowIt = node1.getOutgoing().iterator();
-
-        while (sequenceFlowIt.hasNext()) {
-            SequenceFlow currentSequenceFlow = sequenceFlowIt.next();
-            FlowNode targetNode = currentSequenceFlow.getTarget();
-
-            if (targetNode.getId().equals(node2.getId())) {
-                removeSequenceFlow(currentSequenceFlow);
-                break;
-            }
-        }
-
-        appendTo(node1, newNode);
-        FlowNode addedNode = getModelElementById(newNode.getId());
-        appendTo(addedNode, node2);
-
-        return;
-    }
-*/
-
 
 }
