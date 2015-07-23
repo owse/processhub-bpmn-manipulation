@@ -62,17 +62,30 @@ public class BpmnModelComposerTest
             count++;
         }
 
-        BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInSeries(modelInstances);
+//        BpmnModelInstance resultModel1 = bpmnModelComposer.joinModelsInSeries(modelInstance1, modelInstance2, modelInstance3);
+//
+//        Collection<FlowNode> flowNodes1 = resultModel1.getModelElementsByType(FlowNode.class);
+//
+//        System.out.println("Flow Nodes from the result model ");
+//        for (FlowNode fn: flowNodes1) {
+//            System.out.println(fn.getId());
+//        }
+//
+//        System.out.println("\nResulting BPMN XML:\n");
+//        System.out.println(Bpmn.convertToString(resultModel1));
 
-        Collection<FlowNode> flowNodes = resultModel.getModelElementsByType(FlowNode.class);
+
+        BpmnModelInstance resultModel2 = bpmnModelComposer.joinModelsInSeries(modelInstances);
+
+        Collection<FlowNode> flowNodes2 = resultModel2.getModelElementsByType(FlowNode.class);
 
         System.out.println("Flow Nodes from the result model ");
-        for (FlowNode fn: flowNodes) {
+        for (FlowNode fn: flowNodes2) {
             System.out.println(fn.getId());
         }
 
         System.out.println("\nResulting BPMN XML:\n");
-        System.out.println(Bpmn.convertToString(resultModel));
+        System.out.println(Bpmn.convertToString(resultModel2));
     }
 
     public void testParallelProcessComposition () {
@@ -101,7 +114,8 @@ public class BpmnModelComposerTest
             count++;
         }
 
-        BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelInstances);
+        //BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelInstances);
+        BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelInstance1, modelInstance2, modelInstance3);
 
         Collection<FlowNode> flowNodes = resultModel.getModelElementsByType(FlowNode.class);
 

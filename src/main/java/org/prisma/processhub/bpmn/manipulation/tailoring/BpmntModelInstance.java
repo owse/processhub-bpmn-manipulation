@@ -19,15 +19,22 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     //void extend (BpmnModelInstance modelInstance);
     //void modify (FlowElement targetElement, List<String> properties);
 
-
     // High-level operations
-    void rename(FlowElement targetElement);
     void rename(String id, String newName);
 
     void delete(FlowNode targetNode);
+    void delete(String targetNodeId);
+
     void delete(FlowNode startingNode, FlowNode endingNode);
-    void replace(FlowNode targetNode, org.camunda.bpm.model.bpmn.instance.Process replacingFragment);
+    void delete(String startingNodeId, String endingNodeId);
+
+    void replace(FlowNode targetNode, Process replacingFragment);
+    void replace(String targetNodeId, Process replacingFragment);
+
+    void replace(String targetStartingNodeId, String targetEndingNodeId, Process replacingFragment);
     void replace(FlowNode targetStartingNode, FlowNode targetEndingNode, Process replacingFragment);
+
+
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
     void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);

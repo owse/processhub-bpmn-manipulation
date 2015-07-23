@@ -2,6 +2,7 @@ package org.prisma.processhub.bpmn.manipulation.tailoring.impl;
 
 import junit.framework.TestCase;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
@@ -67,14 +68,13 @@ public class BpmntModelInstanceImplTest extends TestCase {
         System.out.println("\n\nTesting delete (single node):\n");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
-
         Iterator<Task> taskIterator = modelInstance.getModelElementsByType(Task.class).iterator();
         Iterator<SequenceFlow> sequenceFlowIterator = modelInstance.getModelElementsByType(SequenceFlow.class).iterator();
 
         FlowNode flowNodeToDelete = taskIterator.next();
 
         System.out.println("Tasks:\n");
-        System.out.println(flowNodeToDelete);
+        System.out.println(flowNodeToDelete.getId());
 
         while (taskIterator.hasNext()) {
             System.out.println(taskIterator.next().getId());
@@ -111,13 +111,22 @@ public class BpmntModelInstanceImplTest extends TestCase {
         FlowNode endingNode = gatewayIterator.next();
         FlowNode startingNode = gatewayIterator.next();
 
-        modelInstance.delete(startingNode, endingNode);
-
         Collection<FlowNode> flowNodes = modelInstance.getModelElementsByType(FlowNode.class);
+        System.out.println("Flow nodes before deletion:\n");
+        for (FlowNode fn: flowNodes) {
+            System.out.println(fn.getId());
+        }
+
+        modelInstance.delete(startingNode, endingNode);
+        flowNodes = modelInstance.getModelElementsByType(FlowNode.class);
+
+        System.out.println("\n\nFlow nodes after deletion:\n");
         for (FlowNode fn: flowNodes) {
             System.out.println(fn.getId());
         }
 
         Bpmnt.validateModel(modelInstance);
     }
+
+
 }
