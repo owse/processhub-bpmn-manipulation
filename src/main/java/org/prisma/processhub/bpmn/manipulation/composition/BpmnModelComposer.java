@@ -4,9 +4,9 @@ import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
-import org.prisma.processhub.bpmn.manipulation.crud.create.BpmnElementCreator;
-import org.prisma.processhub.bpmn.manipulation.crud.remove.BpmnElementRemover;
-import org.prisma.processhub.bpmn.manipulation.crud.search.BpmnElementSearcher;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.util.*;
 

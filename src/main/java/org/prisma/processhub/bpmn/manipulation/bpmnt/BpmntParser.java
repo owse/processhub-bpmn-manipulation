@@ -5,11 +5,12 @@ import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.impl.parser.AbstractModelParser;
 import org.camunda.bpm.model.xml.impl.util.ReflectUtil;
 import org.camunda.bpm.model.xml.instance.DomDocument;
-import org.prisma.processhub.bpmn.manipulation.tailoring.impl.BpmntModelInstanceImpl;
+import org.prisma.processhub.bpmn.manipulation.impl.tailoring.BpmntModelInstanceImpl;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.SchemaFactory;
+
 import java.io.InputStream;
 import java.net.URL;
 

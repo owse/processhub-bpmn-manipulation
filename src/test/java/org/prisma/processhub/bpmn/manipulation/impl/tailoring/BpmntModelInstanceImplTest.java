@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation.tailoring.impl;
+package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import junit.framework.TestCase;
 import org.camunda.bpm.model.bpmn.instance.*;

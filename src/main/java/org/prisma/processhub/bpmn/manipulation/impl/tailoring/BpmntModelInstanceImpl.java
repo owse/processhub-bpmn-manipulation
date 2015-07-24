@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation.tailoring.impl;
+package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.impl.BpmnModelInstanceImpl;
 import org.camunda.bpm.model.bpmn.instance.*;
@@ -6,10 +6,10 @@ import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
-import org.prisma.processhub.bpmn.manipulation.crud.remove.BpmnElementRemover;
 import org.prisma.processhub.bpmn.manipulation.exception.FlowElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.exception.FlowNodeNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,8 +22,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         super(model, modelBuilder, document);
     }
 
+    
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+   
+    // Remove flow element leaving the rest of the model untouched
     public void suppress (FlowElement targetElement) {
 
         Collection<FlowElement> flowElements = getModelElementsByType(Process.class).iterator().next().getFlowElements();
@@ -43,6 +46,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     // High-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+    // Rename element
     public void rename(String targetElementId, String newName) throws FlowElementNotFoundException {
         FlowElement flowElementToRename = getModelElementById(targetElementId);
         if (flowElementToRename == null) {
@@ -52,19 +56,23 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
+    // Delete a node removing
     public void delete(FlowNode targetNode){
+        
+        // Gateways, start and end events are not allowed to be deleted
         if (targetNode instanceof Gateway || targetNode instanceof StartEvent || targetNode instanceof EndEvent) {
             return;
         }
 
+        // Get all incoming and outgoing sequence flows from the node
         Collection<SequenceFlow> incomingSequenceFlows = targetNode.getIncoming();
         Collection<SequenceFlow> outgoingSequenceFlows = targetNode.getOutgoing();
 
         Collection<FlowNode> beforeNodes = new ArrayList<FlowNode>();
         Collection<FlowNode> afterNodes = new ArrayList<FlowNode>();
-
         Collection<Gateway> gateways = new ArrayList<Gateway>();
 
+        // Get all nodes and gateways before the node
         for (SequenceFlow sf: incomingSequenceFlows) {
             FlowNode source = sf.getSource();
             if (source instanceof Gateway) {
@@ -75,6 +83,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             }
         }
 
+        // Get all nodes and gateways after the node
         for (SequenceFlow sf: outgoingSequenceFlows) {
             FlowNode destination = sf.getTarget();
             if (destination instanceof Gateway) {
@@ -85,14 +94,19 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             }
         }
 
+        // Gateways should have at least 3 incoming or outgoing sequence flows
+        // Delete gateway if it has less than that discounting the sequence flow that
+        // will be removed when the node is deleted
+        
+        // Should also check if there is at least one sequence flow after node deletion
         Collection<Gateway> gatewaysToDelete = new ArrayList<Gateway>();
-
         for (Gateway g: gateways) {
             if (g.getIncoming().size() + g.getOutgoing().size() - 1 < 3) {
                 gatewaysToDelete.add(g);
             }
         }
 
+        // Remove flow node and all sequence flows connected to it
         BpmnElementRemover.removeFlowNode(this, targetNode.getId());
 
         for (Gateway g: gatewaysToDelete) {
@@ -102,13 +116,21 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             BpmnElementRemover.removeFlowNode(this, g.getId());
         }
 
+        // Connect nodes before the removed one to nodes after it
         for (FlowNode beforeNode: beforeNodes) {
             for (FlowNode afterNode: afterNodes) {
                 beforeNode.builder().connectTo(afterNode.getId());
             }
         }
-
         return;
+    }
+    
+    public void insertInSeries(FlowNode beforeNode, FlowNode afterNode, FlowNode newNode){
+        
+        // Start and end events are not allowed to be inserted
+        if (newNode instanceof StartEvent || newNode instanceof EndEvent) {
+            return;
+        }
     }
 
     public void delete(String targetNodeId) throws FlowNodeNotFoundException {

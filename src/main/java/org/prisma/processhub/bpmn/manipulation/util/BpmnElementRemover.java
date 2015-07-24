@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation.crud.remove;
+package org.prisma.processhub.bpmn.manipulation.util;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;

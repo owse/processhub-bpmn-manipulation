@@ -1,8 +1,7 @@
-package org.prisma.processhub.bpmn.manipulation.crud.create;
+package org.prisma.processhub.bpmn.manipulation.util;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
-import org.prisma.processhub.bpmn.manipulation.crud.remove.BpmnElementRemover;
 
 import java.util.Date;
 import java.util.Iterator;
