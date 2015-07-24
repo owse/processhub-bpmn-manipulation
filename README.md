@@ -62,4 +62,27 @@ BpmnModelInstance resultModel = bpmnModelComposer.joinModelsInParallel(modelsToJ
 ### Restrictions
 Currently, the operations rely on the assumption that process to be joined has exactly one start event and one end events. It's also assumed that the processes are valid. The operators work only if both conditions are met.
 
+## Tailoring Operators
 
+Tailoring operators are functions that modify an existing process elements in order to adapt it to a new context. The operators will be supported in an interface and implementation that extends BpmnModelInstance with tailoring operations. The new interface is called BpmntModelInstance and the following operations are supported:
+
+### 1. Rename
+Rename an element.
+
+```java
+BpmntModelInstance modelInstance = Bpmnt.readModelFromFile(new File("simple_diagram.bpmn"));
+// Pass element id and new name
+modelInstance.rename(flowElement.getId(), "New Name");
+// Or pass the element already renamed as parameter
+modelInstance.rename(renamedFlowElement);
+```
+### 2. Delete
+Delete an element or sequence of elements from the model.
+
+```java
+BpmntModelInstance modelInstance = Bpmnt.readModelFromFile(new File("simple_diagram.bpmn"));
+// Delete a single node
+modelInstance.delete(flowNode);
+// or delete a range of elements from startingNode to endingNode
+modelInstance.delete(startingNode, endingNode);
+```
