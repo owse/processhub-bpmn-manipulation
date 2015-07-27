@@ -5,127 +5,120 @@ import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 public class BpmntModelInstanceImplTest extends TestCase {
 
     public void testSuppress() throws Exception {
-        System.out.println("Testing suppress:\n");
+        System.out.print("Testing suppress");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
-        Iterator<FlowElement> flowElementIterator = modelInstance.getModelElementsByType(FlowElement.class).iterator();
-        FlowElement flowElementToRemove = flowElementIterator.next();
+        // Get the first flow element
+        FlowElement flowElementToRemove = modelInstance.getModelElementsByType(FlowElement.class).iterator().next();
+        String flowElementToRemoveId = flowElementToRemove.getId();
 
-        System.out.println("Flow Elements:\n");
-        System.out.println(flowElementToRemove);
+        // Remove the first flow element
+        modelInstance.suppress(flowElementToRemoveId);
 
-        while (flowElementIterator.hasNext()) {
-            System.out.println(flowElementIterator.next());
+        // Verify if the flow element has been removed
+        assertEquals(modelInstance.getModelElementById(flowElementToRemoveId), null);
+
+        // Verify model consistency with Camunda API
+        try {
+            Bpmnt.validateModel(modelInstance);
+        }
+        catch (Exception e) {
+            System.out.println(" ....................... ok");
         }
 
-        modelInstance.suppress(flowElementToRemove);
-
-        Iterator<FlowElement> flowElementIterator1 = modelInstance.getModelElementsByType(FlowElement.class).iterator();
-
-        System.out.println("\n\nFlow elements with first element removed:\n");
-        while (flowElementIterator1.hasNext()) {
-            System.out.println(flowElementIterator1.next());
-        }
 
     }
 
     public void testRename() throws Exception {
-        System.out.println("\n\nTesting rename:\n");
-
+        System.out.print("Testing rename");
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
-        Iterator<FlowNode> flowNodeIterator = modelInstance.getModelElementsByType(FlowNode.class).iterator();
-        FlowNode flowNodeToRename = flowNodeIterator.next();
+        // Select a flow node to rename
+        FlowNode flowNodeToRename = modelInstance.getModelElementsByType(FlowNode.class).iterator().next();
+        String flowNodeToRenameId = flowNodeToRename.getId();
+        String newName = "New Name";
 
+        modelInstance.rename(flowNodeToRenameId, newName);
 
-        System.out.println("\nFlow Nodes:\n");
-        System.out.println(flowNodeToRename.getName());
+        // Checks if the target node has been renamed correctly
+        assertEquals(newName, flowNodeToRename.getName());
 
-        while (flowNodeIterator.hasNext()) {
-            System.out.println(flowNodeIterator.next().getName());
-        }
-
-        modelInstance.rename(flowNodeToRename.getId(), "New Name");
-
-        Iterator<FlowNode> flowNodeIterator1 = modelInstance.getModelElementsByType(FlowNode.class).iterator();
-
-        System.out.println("\n\nFlow nodes with first node renamed:\n");
-        while (flowNodeIterator1.hasNext()) {
-            System.out.println(flowNodeIterator1.next().getName());
-        }
-
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(modelInstance);
+        System.out.println(" ......................... ok");
     }
 
     public void testDeleteSingleNode() throws Exception {
-        System.out.println("\n\nTesting delete (single node):\n");
+        System.out.print("Testing delete (single node)");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
-        Iterator<Task> taskIterator = modelInstance.getModelElementsByType(Task.class).iterator();
-        Iterator<SequenceFlow> sequenceFlowIterator = modelInstance.getModelElementsByType(SequenceFlow.class).iterator();
+        FlowNode flowNodeToDelete = modelInstance.getModelElementsByType(Task.class).iterator().next();
+        String flowNodeToDeleteId = flowNodeToDelete.getId();
+        int initialNumberFlowNodes = modelInstance.getModelElementsByType(FlowNode.class).size();
 
-        FlowNode flowNodeToDelete = taskIterator.next();
+        // Find start and end events
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelInstance);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(modelInstance);
 
-        System.out.println("Tasks:\n");
-        System.out.println(flowNodeToDelete.getId());
+        modelInstance.delete(flowNodeToDeleteId);
 
-        while (taskIterator.hasNext()) {
-            System.out.println(taskIterator.next().getId());
-        }
+        FlowNode remainingTask = modelInstance.getModelElementsByType(Task.class).iterator().next();
 
-        System.out.println("\n\nSequence Flows:\n");
-        while (sequenceFlowIterator.hasNext()) {
-            System.out.println(sequenceFlowIterator.next().getId());
-        }
+        // Checks if the split parallel gateway has been removed and if the remaining task is connected to the start event
+        assertEquals(startEvent, remainingTask.getPreviousNodes().singleResult());
 
-        modelInstance.delete(flowNodeToDelete);
+        // Checks if the join parallel gateway has been removed and if the remaining task is connected to the end event
+        assertEquals(endEvent, remainingTask.getSucceedingNodes().singleResult());
 
-        Iterator<FlowNode> flowNodeIterator = modelInstance.getModelElementsByType(FlowNode.class).iterator();
-        Iterator<SequenceFlow> sequenceFlowIterator1 = modelInstance.getModelElementsByType(SequenceFlow.class).iterator();
+        // Checks if the number of remaining flow nodes is correct
+        assertEquals(initialNumberFlowNodes - 3, modelInstance.getModelElementsByType(FlowNode.class).size());
 
-        System.out.println("\n\nFlow nodes with one task removed:\n");
-        while (flowNodeIterator.hasNext()) {
-            System.out.println(flowNodeIterator.next().getId());
-        }
-
-        System.out.println("\n\nSequence Flows:\n");
-        while (sequenceFlowIterator1.hasNext()) {
-            System.out.println(sequenceFlowIterator1.next().getId());
-        }
-
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(modelInstance);
+        System.out.println(" ........... ok");
     }
 
     public void testDeleteMultipleNodes() {
-        System.out.println("\n\nTesting delete (multiple nodes)");
+        System.out.print("Testing delete (multiple nodes)");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
 
-        Iterator<Gateway> gatewayIterator = modelInstance.getModelElementsByType(Gateway.class).iterator();
-        FlowNode endingNode = gatewayIterator.next();
-        FlowNode startingNode = gatewayIterator.next();
+        ParallelGateway splitGateway = modelInstance.getModelElementById("ParallelGateway_1c6p3yf");
+        ParallelGateway joinGateway = modelInstance.getModelElementById("ParallelGateway_07aj32a");
+        Task parallelTaskA = modelInstance.getModelElementById("Task_1liqzit");
+        Task parallelTaskB = modelInstance.getModelElementById("Task_0dae65c");
+        FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
+        FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance);
+        int initialNumberFlowNodes = modelInstance.getModelElementsByType(FlowNode.class).size();
 
-        Collection<FlowNode> flowNodes = modelInstance.getModelElementsByType(FlowNode.class);
-        System.out.println("Flow nodes before deletion:\n");
-        for (FlowNode fn: flowNodes) {
-            System.out.println(fn.getId());
-        }
+        // Deleting the parallel fragment
+        modelInstance.delete(splitGateway, joinGateway);
 
-        modelInstance.delete(startingNode, endingNode);
-        flowNodes = modelInstance.getModelElementsByType(FlowNode.class);
+        // Verifies that every node in the selected fragment has been deleted
+        assert modelInstance.getModelElementsByType(ParallelGateway.class).isEmpty();
+        assertEquals(null, modelInstance.getModelElementById(parallelTaskA.getId()));
+        assertEquals(null, modelInstance.getModelElementById(parallelTaskB.getId()));
 
-        System.out.println("\n\nFlow nodes after deletion:\n");
-        for (FlowNode fn: flowNodes) {
-            System.out.println(fn.getId());
-        }
+        // Verifies that the first task is connected to the last task
+        assertEquals(lastNode, firstNode.getSucceedingNodes().singleResult());
 
+        // Checks if the number of remaining flow nodes is correct
+        assertEquals(initialNumberFlowNodes - 4, modelInstance.getModelElementsByType(FlowNode.class).size());
+
+        // Verify model consistency with Camunda API
         Bpmnt.validateModel(modelInstance);
+        System.out.println(" ........ ok");
+
     }
 
 
