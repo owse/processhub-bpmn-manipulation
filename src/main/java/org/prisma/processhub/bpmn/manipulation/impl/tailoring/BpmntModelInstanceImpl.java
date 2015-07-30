@@ -288,9 +288,85 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment){}
+    public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) {
+        if (startingNode == null || endingNode == null || replacingNode == null) {
+            return;
+        }
 
-    // TODO: add exception "node not found"
+        // Can't replace fragment with a start or end event
+        if (replacingNode instanceof StartEvent || replacingNode instanceof EndEvent) {
+            return;
+        }
+
+        BpmnElementRemover.isolateFlowNode(replacingNode);
+
+        Collection<FlowNode> replacedNodes = mapProcessFragment(startingNode, endingNode);
+
+        FlowNode previousNode = startingNode.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = endingNode.getSucceedingNodes().singleResult();
+
+        BpmnElementCreator.appendTo(this, previousNode, replacingNode);
+        FlowNode createdNode = getModelElementById(replacingNode.getId());
+        BpmnElementCreator.appendTo(this, createdNode, succeedingNode);
+
+        for (FlowNode fn: replacedNodes) {
+            BpmnElementRemover.removeFlowNode(this, fn.getId());
+        }
+
+        return;
+    }
+
+    public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws FlowNodeNotFoundException {
+        FlowNode startingNode = getModelElementById(startingNodeId);
+        FlowNode endingNode = getModelElementById(endingNodeId);
+
+        if (startingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
+        }
+
+        if (endingNode == null) {
+            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+        }
+
+        replace(startingNode , endingNode, replacingNode);
+        return;
+    }
+
+    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment){
+        if (startingNode == null || endingNode == null || replacingFragment == null) {
+            return;
+        }
+
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(replacingFragment);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(replacingFragment);
+
+        if (startEvent == null || endEvent == null) {
+            return;
+        }
+
+        Collection<FlowNode> replacedNodes = mapProcessFragment(startingNode, endingNode);
+
+        FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(replacingFragment);
+        FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(replacingFragment);
+
+        FlowNode previousNode = startingNode.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = endingNode.getSucceedingNodes().singleResult();
+
+        BpmnElementRemover.removeFlowNode(replacingFragment, startEvent.getId());
+        BpmnElementRemover.removeFlowNode(replacingFragment, endEvent.getId());
+
+        BpmnElementCreator.appendTo(this, previousNode, firstNode);
+        FlowNode createdLastNode = getModelElementById(lastNode.getId());
+        BpmnElementCreator.appendTo(this, createdLastNode, succeedingNode);
+
+        for (FlowNode fn: replacedNodes) {
+            BpmnElementRemover.removeFlowNode(this, fn.getId());
+        }
+
+        return;
+
+    }
+
     public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
