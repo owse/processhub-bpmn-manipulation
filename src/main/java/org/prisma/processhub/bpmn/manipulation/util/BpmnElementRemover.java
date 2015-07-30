@@ -48,5 +48,13 @@ public final class BpmnElementRemover {
 
         return;
     }
+
+    public static void isolateFlowNode(FlowNode flowNode) {
+        Collection<SequenceFlow> incomingFlows = flowNode.getIncoming();
+        Collection<SequenceFlow> outgoingFlows = flowNode.getOutgoing();
+
+        incomingFlows.clear();
+        outgoingFlows.clear();
+    }
 }
 

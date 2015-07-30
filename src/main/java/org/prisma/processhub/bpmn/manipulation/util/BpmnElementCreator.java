@@ -2,6 +2,7 @@ package org.prisma.processhub.bpmn.manipulation.util;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -66,8 +67,13 @@ public final class BpmnElementCreator {
 
         // BPMN Events
         else if (flowNodeToInclude instanceof Event) {
+            if (flowNodeToInclude instanceof StartEvent) {
+                modelInstance.getModelElementsByType(Process.class)
+                        .iterator().next().builder()
+                            .startEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            }
 
-            if (flowNodeToInclude instanceof IntermediateCatchEvent) {
+            else if (flowNodeToInclude instanceof IntermediateCatchEvent) {
                 flowNodeToBeAppended.builder().intermediateCatchEvent(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
             }
 
