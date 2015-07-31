@@ -320,4 +320,126 @@ public class BpmntModelInstanceImplTest extends TestCase {
         System.out.println(" .... ok");
     }
 
+    public void testInsertFragmentInSeries() {
+        System.out.print("Testing insert in series (fragment)");
+
+        // First try (afterOf == null)
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        StartEvent afterOf1 = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
+        EndEvent beforeOf1 = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
+
+        // Extract nodes from the models
+        FlowNode firstNode1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode lastNode1 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        String firstNodeId2 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2).getId();
+        String lastNodeId2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2).getId();
+
+        modelInstance1.insert(null, beforeOf1, modelInstance2);
+
+        FlowNode firstNode2 = modelInstance1.getModelElementById(firstNodeId2);
+        FlowNode lastNode2 = modelInstance1.getModelElementById(lastNodeId2);
+
+        // Check if the fragment was correctly created and placed in the process
+        assertEquals(lastNode1, firstNode2.getPreviousNodes().singleResult());
+        assertEquals(beforeOf1, lastNode2.getSucceedingNodes().singleResult());
+
+
+        // Second try (beforeOf == null)
+        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance4 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        StartEvent afterOf2 = modelInstance3.getModelElementsByType(StartEvent.class).iterator().next();
+        EndEvent beforeOf2 = modelInstance3.getModelElementsByType(EndEvent.class).iterator().next();
+
+        // Extract nodes from the models
+        FlowNode firstNode3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance3);
+        FlowNode lastNode3 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance3);
+
+        String firstNodeId4 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance4).getId();
+        String lastNodeId4 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance4).getId();
+
+        modelInstance3.insert(afterOf2, null, modelInstance4);
+
+        FlowNode firstNode4 = modelInstance3.getModelElementById(firstNodeId4);
+        FlowNode lastNode4 = modelInstance3.getModelElementById(lastNodeId4);
+
+        // Check if the fragment was correctly created and placed in the process
+        assertEquals(afterOf2, firstNode4.getPreviousNodes().singleResult());
+        assertEquals(firstNode3, lastNode4.getSucceedingNodes().singleResult());
+
+
+        // Third try (afterOf and beforeOf nodes set)
+        BpmntModelInstance modelInstance5 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance6 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        // Extract nodes from the model
+        FlowNode afterOf3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance5);
+        FlowNode beforeOf3 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance5);
+
+        String firstNodeId6 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance6).getId();
+        String lastNodeId6 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance6).getId();
+
+        modelInstance5.insert(afterOf3, beforeOf3, modelInstance6);
+
+        FlowNode firstNode6 =  modelInstance5.getModelElementById(firstNodeId6);
+        FlowNode lastNode6 =  modelInstance5.getModelElementById(lastNodeId6);
+
+        // Check if the node was correctly created and placed in the process
+        assertEquals(afterOf3, firstNode6.getPreviousNodes().singleResult());
+        assertEquals(beforeOf3, lastNode6.getSucceedingNodes().singleResult());
+
+        System.out.println(" ......... ok");
+    }
+
+    public void testInsertFragmentInParallel() {
+        System.out.print("Testing insert in parallel (fragment)");
+
+        // First try (afterOf == null)
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        StartEvent afterOf = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
+        EndEvent beforeOf = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
+
+        // Extract nodes from the model
+        FlowNode firstNode1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode lastNode1 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        String firstNodeId2 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2).getId();
+        String lastNodeId2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2).getId();
+
+        modelInstance1.insert(afterOf, beforeOf, modelInstance2);
+
+        FlowNode firstNode2 = modelInstance1.getModelElementById(firstNodeId2);
+        FlowNode lastNode2 = modelInstance1.getModelElementById(lastNodeId2);
+
+        Collection<ParallelGateway> parallelGateways = modelInstance1.getModelElementsByType(ParallelGateway.class);
+        ParallelGateway divergingGateway = null;
+        ParallelGateway convergingGateway = null;
+
+        for (ParallelGateway pg: parallelGateways) {
+            if (pg.getSucceedingNodes().count() > 1) {
+                divergingGateway = pg;
+            }
+            else {
+                convergingGateway = pg;
+            }
+        }
+
+        // Check if the target node and the gateways were correctly created and placed in the process
+        assertEquals(divergingGateway, afterOf.getSucceedingNodes().singleResult());
+        assertEquals(convergingGateway, beforeOf.getPreviousNodes().singleResult());
+
+        assertEquals(divergingGateway, firstNode1.getPreviousNodes().singleResult());
+        assertEquals(divergingGateway, firstNode2.getPreviousNodes().singleResult());
+
+        assertEquals(convergingGateway, lastNode1.getSucceedingNodes().singleResult());
+        assertEquals(convergingGateway, lastNode2.getSucceedingNodes().singleResult());
+
+        System.out.println(" ....... ok");
+    }
+
 }
