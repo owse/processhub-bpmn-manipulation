@@ -1,12 +1,17 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import junit.framework.TestCase;
+import org.camunda.bpm.model.bpmn.Bpmn;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -121,5 +126,53 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
+    public void testReplaceNodeWithNode() {
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
+        List<Task> tasks = (List) modelInstance1.getModelElementsByType(Task.class);
+
+        FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
+
+//        System.out.println("Original tasks");
+//        for (Task task: tasks) {
+//            System.out.println(task.getName());
+//        }
+
+        Task targetTask1 = (Task) tasks.get(0);
+        Task targetTask2 = (Task) tasks.get(1);
+
+        modelInstance1.replace(targetTask2, targetTask1, replacingTask);
+
+        tasks = (List<Task>) modelInstance1.getModelElementsByType(Task.class);
+
+//        System.out.println("New tasks");
+//        for (Task task: tasks) {
+//            System.out.print(task.getId());
+//            System.out.println("  " + task.getSucceedingNodes().singleResult().getId());
+//        }
+
+
+
+        return;
+    }
+
+    public void testSplit() {
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
+
+        Task splittedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
+
+        modelInstance1.split(splittedTask, modelInstance2);
+
+        Collection<Task> tasks = modelInstance1.getModelElementsByType(Task.class);
+
+        for (Task task: tasks) {
+            System.out.println(Bpmnt.convertToString(modelInstance1));
+        }
+
+
+
+
+    }
 }

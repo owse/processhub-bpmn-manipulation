@@ -1,5 +1,6 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.impl.BpmnModelInstanceImpl;
 import org.camunda.bpm.model.bpmn.instance.*;
@@ -328,7 +329,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
         }
 
-        replace(startingNode , endingNode, replacingNode);
+        replace(startingNode, endingNode, replacingNode);
         return;
     }
 
@@ -387,10 +388,35 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     public void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode){}
     public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode){}
 
-    public void split(Task targetTask, BpmnModelInstance newSubProcess){
-//        SubProcess subProcess = getModelElementsByType(SubProcess.class).iterator().next();
-//        subProcess.getFlowElements();
-//
+    public void split(Task targetTask, BpmnModelInstance newSubProcessModel){
+        if (targetTask == null || newSubProcessModel == null) {
+            return;
+        }
+
+        StartEvent sourceStartEvent = BpmnElementSearcher.findStartEvent(newSubProcessModel);
+        EndEvent sourceEndEvent = BpmnElementSearcher.findEndEvent(newSubProcessModel);
+
+        if (sourceStartEvent == null || sourceEndEvent == null) {
+            return;
+        }
+
+        FlowNode previousNode = targetTask.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = targetTask.getSucceedingNodes().singleResult();
+
+        String targetTaskId = targetTask.getId();
+        String targetTaskName = targetTask.getName();
+
+        Process newSubProcess = newSubProcessModel.getModelElementsByType(Process.class).iterator().next();
+
+        delete(targetTask);
+
+        previousNode.builder().subProcess(targetTaskId).name(targetTaskName);
+
+        SubProcess createdSubProcess = getModelElementById(targetTaskId);
+
+        createdSubProcess.builder().connectTo(succeedingNode.getId());
+
+        BpmnElementCreator.populateSubProcess(createdSubProcess, sourceStartEvent);
     }
 
     public void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}

@@ -3,6 +3,7 @@ package org.prisma.processhub.bpmn.manipulation.util;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -97,6 +98,12 @@ public final class BpmnElementCreator {
             }
         }
 
+        // BPMN SubProcess
+        else if (flowNodeToInclude instanceof SubProcess) {
+            flowNodeToBeAppended.builder().subProcess(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
+            populateSubProcess((SubProcess) flowNodeToInclude, BpmnElementSearcher.findStartEvent((SubProcess) flowNodeToInclude));
+        }
+
         flowNodeToBeAppended = modelInstance.getModelElementById(flowNodeToInclude.getId());
 
 
@@ -104,6 +111,16 @@ public final class BpmnElementCreator {
             flowNodeToInclude = sequenceFlow.getTarget();
             appendTo(modelInstance, flowNodeToBeAppended, flowNodeToInclude);
         }
+    }
+
+    public static void populateSubProcess(SubProcess targetSubProcess, StartEvent sourceStartEvent) {
+        targetSubProcess.builder().embeddedSubProcess().startEvent(sourceStartEvent.getId()).name(sourceStartEvent.getName());
+        BpmnModelInstance modelInstance = (BpmnModelInstance) targetSubProcess.getModelInstance();
+        FlowNode flowNodeToBeAppended = modelInstance.getModelElementById(sourceStartEvent.getId());
+        FlowNode flowNodeToInclude = sourceStartEvent.getSucceedingNodes().singleResult();
+
+        appendTo((BpmntModelInstance) targetSubProcess.getModelInstance(), flowNodeToBeAppended, flowNodeToInclude);
+
     }
 
     // Insert a new flow node between two flow nodes in the model
