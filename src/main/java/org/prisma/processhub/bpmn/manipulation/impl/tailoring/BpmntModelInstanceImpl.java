@@ -386,7 +386,13 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     public void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode){}
     public void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode){}
     public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode){}
-    public void split(Task targetTask, Process newSubProcess){}
+
+    public void split(Task targetTask, BpmnModelInstance newSubProcess){
+//        SubProcess subProcess = getModelElementsByType(SubProcess.class).iterator().next();
+//        subProcess.getFlowElements();
+//
+    }
+
     public void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}
     public void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}
     public void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}

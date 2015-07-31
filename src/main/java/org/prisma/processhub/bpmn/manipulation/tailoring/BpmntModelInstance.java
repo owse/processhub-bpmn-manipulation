@@ -49,7 +49,7 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
     void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);
-    void split(Task targetTask, Process newSubProcess);
+    void split(Task targetTask, BpmnModelInstance newSubProcess);
     void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
     void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
     void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
