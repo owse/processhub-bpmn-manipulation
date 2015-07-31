@@ -49,8 +49,17 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
     void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);
+
     void split(Task targetTask, BpmnModelInstance newSubProcessModel);
-    void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
-    void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
-    void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
+
+    void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert);
+    void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert);
+    void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert);
+    void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop);
+    void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop);
+    void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop);
+
+//    void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
+//    void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
+//    void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
 }
