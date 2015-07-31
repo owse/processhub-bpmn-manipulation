@@ -158,21 +158,45 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testSplit() {
+        System.out.print("Testing split");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
-        Task splittedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
+        Task splitTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
+        String targetId = splitTask.getId();
 
-        modelInstance1.split(splittedTask, modelInstance2);
+        FlowNode previousNode = splitTask.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = splitTask.getSucceedingNodes().singleResult();
 
-        Collection<Task> tasks = modelInstance1.getModelElementsByType(Task.class);
+        modelInstance1.split(splitTask, modelInstance2);
 
-        for (Task task: tasks) {
-            System.out.println(Bpmnt.convertToString(modelInstance1));
-        }
+        // Checks if the subprocess was created with the same ID as the split task
+        assert modelInstance1.getModelElementById(targetId) instanceof SubProcess;
 
+        SubProcess subProcess = modelInstance1.getModelElementById(targetId);
 
+        // Checks if the subprocess was correctly placed in the target process
+        assertEquals(previousNode, subProcess.getPreviousNodes().singleResult());
+        assertEquals(succeedingNode, subProcess.getSucceedingNodes().singleResult());
 
+        // Extract nodes from the model
+        StartEvent sourceStartEvent = BpmnElementSearcher.findStartEvent(modelInstance2);
+        FlowNode sourceFirstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2);
+        FlowNode sourceLastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2);
+        EndEvent sourceEndEvent = BpmnElementSearcher.findEndEvent(modelInstance2);
 
+        // Extract nodes from the created subprocess
+        StartEvent subProcessStartEvent = BpmnElementSearcher.findStartEvent(modelInstance2);
+        FlowNode subProcessFirstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2);
+        FlowNode subProcessLastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2);
+        EndEvent subProcessEndEvent = BpmnElementSearcher.findEndEvent(modelInstance2);
+
+        // Verifies that all nodes have been correctly created and in the right order
+        assertEquals(sourceStartEvent.getId(), subProcessStartEvent.getId());
+        assertEquals(sourceFirstNode.getId(), subProcessFirstNode.getId());
+        assertEquals(sourceLastNode.getId(), subProcessLastNode.getId());
+        assertEquals(sourceEndEvent.getId(), subProcessEndEvent.getId());
+
+        System.out.println(" .......................... ok");
     }
 }

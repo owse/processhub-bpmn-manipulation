@@ -101,11 +101,11 @@ public final class BpmnElementCreator {
         // BPMN SubProcess
         else if (flowNodeToInclude instanceof SubProcess) {
             flowNodeToBeAppended.builder().subProcess(flowNodeToInclude.getId()).name(flowNodeToInclude.getName());
-            populateSubProcess((SubProcess) flowNodeToInclude, BpmnElementSearcher.findStartEvent((SubProcess) flowNodeToInclude));
+            StartEvent subProcessStartEvent = BpmnElementSearcher.findStartEvent((SubProcess) flowNodeToInclude);
+            populateSubProcess((SubProcess) flowNodeToInclude, subProcessStartEvent);
         }
 
         flowNodeToBeAppended = modelInstance.getModelElementById(flowNodeToInclude.getId());
-
 
         for (SequenceFlow sequenceFlow:flowNodeToInclude.getOutgoing()) {
             flowNodeToInclude = sequenceFlow.getTarget();
