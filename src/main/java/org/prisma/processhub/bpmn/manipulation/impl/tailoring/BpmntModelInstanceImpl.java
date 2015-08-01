@@ -14,6 +14,7 @@ import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -139,13 +140,13 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void delete(FlowNode startingNode, FlowNode endingNode){
-        Collection<FlowNode> flowNodesToDelete = mapProcessFragment(startingNode, endingNode);
+    public void delete(FlowNode startingNode, FlowNode endingNode) throws Exception {
+        Collection<FlowNode> flowNodesToDelete = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
         if (startingNode instanceof StartEvent || endingNode instanceof EndEvent) {
             return;
         }
 
-        if (validateProcessFragment(flowNodesToDelete)) {
+        if (BpmnFragmentHandler.validateProcessFragment(flowNodesToDelete)) {
             Collection<SequenceFlow> sequenceFlowsIncoming = startingNode.getIncoming();
             Collection<SequenceFlow> sequenceFlowsOutgoing = endingNode.getOutgoing();
 
@@ -164,7 +165,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    public void delete(String startingNodeId, String endingNodeId) throws FlowNodeNotFoundException {
+    public void delete(String startingNodeId, String endingNodeId) throws Exception {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
@@ -289,7 +290,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) {
+    public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) throws Exception {
         if (startingNode == null || endingNode == null || replacingNode == null) {
             return;
         }
@@ -301,7 +302,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
         BpmnElementRemover.isolateFlowNode(replacingNode);
 
-        Collection<FlowNode> replacedNodes = mapProcessFragment(startingNode, endingNode);
+        Collection<FlowNode> replacedNodes = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
 
         FlowNode previousNode = startingNode.getPreviousNodes().singleResult();
         FlowNode succeedingNode = endingNode.getSucceedingNodes().singleResult();
@@ -317,7 +318,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws FlowNodeNotFoundException {
+    public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws Exception {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
@@ -333,7 +334,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment){
+    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) throws Exception {
         if (startingNode == null || endingNode == null || replacingFragment == null) {
             return;
         }
@@ -345,7 +346,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             return;
         }
 
-        Collection<FlowNode> replacedNodes = mapProcessFragment(startingNode, endingNode);
+        Collection<FlowNode> replacedNodes = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
 
         FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(replacingFragment);
         FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(replacingFragment);
@@ -368,7 +369,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException {
+    public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws Exception {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
@@ -594,110 +595,5 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     //public void extend (BpmnModelInstance modelInstance);
     //public void modify (FlowElement targetElement, List<String> properties);
-
-    // Private helper methods
-
-    // Returns a list with all flow nodes between startingNode and endingNode (both inclusive)
-    private Collection<FlowNode> mapProcessFragment(FlowNode startingNode, FlowNode endingNode) {
-        if (startingNode instanceof StartEvent || endingNode instanceof EndEvent) {
-            return null;
-        }
-
-        Collection<FlowNode> flowNodes = new ArrayList<FlowNode>();
-        flowNodes.add(startingNode);
-
-        if (startingNode.getId().equals(endingNode.getId())) {
-            return flowNodes;
-        }
-
-        Collection<SequenceFlow> sequenceFlows = startingNode.getOutgoing();
-
-        for (SequenceFlow sf: sequenceFlows) {
-            mapProcessFragment(flowNodes, sf.getTarget(), endingNode);
-        }
-
-        return flowNodes;
-    }
-
-    // TODO: fix mapping for incomplete process fragments
-    // Recursive iteration from mapProcessFragment
-    private void mapProcessFragment(Collection<FlowNode> flowNodes, FlowNode currentNode, FlowNode endingNode) {
-
-        // If node already created, return
-        for (FlowNode fn: flowNodes) {
-            if (fn.getId().equals(currentNode.getId())) {
-                return;
-            }
-        }
-
-        // End reached
-        if (currentNode.getId().equals(endingNode.getId())) {
-            flowNodes.add(endingNode);
-            return;
-        }
-
-        flowNodes.add(currentNode);
-
-        Collection<SequenceFlow> sequenceFlows = currentNode.getOutgoing();
-
-        for (SequenceFlow sf: sequenceFlows) {
-            mapProcessFragment(flowNodes, sf.getTarget(), endingNode);
-        }
-
-    }
-
-    // Verifies if a process fragment is valid
-    private boolean validateProcessFragment(Collection<FlowNode> flowNodes) {
-        Collection<Gateway> gateways = new ArrayList<Gateway>();
-
-        for (FlowNode fn: flowNodes) {
-            if (fn instanceof Gateway) {
-                gateways.add((Gateway) fn);
-            }
-        }
-
-        for (Gateway g: gateways) {
-            Collection<SequenceFlow> sequenceFlowsIncoming = g.getIncoming();
-            Collection<SequenceFlow> sequenceFlowsOutgoing = g.getOutgoing();
-            Collection<FlowNode> flowNodesIncoming = new ArrayList<FlowNode>();
-            Collection<FlowNode> flowNodesOutgoing = new ArrayList<FlowNode>();
-
-            for (SequenceFlow sf: sequenceFlowsIncoming) {
-                flowNodesIncoming.add(sf.getSource());
-            }
-
-            for (SequenceFlow sf: sequenceFlowsOutgoing) {
-                flowNodesOutgoing.add(sf.getTarget());
-            }
-
-            int incomingCount = 0;
-            int outgoingCount = 0;
-
-            for (FlowNode fni: flowNodesIncoming) {
-                for (FlowNode fn: flowNodes) {
-                    if (fn.getId().equals(fni.getId())) {
-                        incomingCount++;
-                        break;
-                    }
-                }
-            }
-
-            for (FlowNode fno: flowNodesOutgoing) {
-                for (FlowNode fn: flowNodes) {
-                    if (fn.getId().equals(fno.getId())) {
-                        outgoingCount++;
-                        break;
-                    }
-                }
-            }
-
-            if ((incomingCount != 0 && incomingCount < flowNodesIncoming.size()) ||
-                    (outgoingCount != 0 && outgoingCount < flowNodesOutgoing.size())) {
-                return false;
-            }
-
-        }
-        return true;
-    }
 
 }

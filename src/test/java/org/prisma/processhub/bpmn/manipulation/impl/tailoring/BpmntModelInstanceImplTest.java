@@ -107,7 +107,11 @@ public class BpmntModelInstanceImplTest extends TestCase {
         int initialNumberFlowNodes = modelInstance.getModelElementsByType(FlowNode.class).size();
 
         // Deleting the parallel fragment
-        modelInstance.delete(splitGateway, joinGateway);
+        try {
+            modelInstance.delete(splitGateway, joinGateway);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // Verifies that every node in the selected fragment has been deleted
         assert modelInstance.getModelElementsByType(ParallelGateway.class).isEmpty();
@@ -142,7 +146,11 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Task targetTask1 = (Task) tasks.get(0);
         Task targetTask2 = (Task) tasks.get(1);
 
-        modelInstance1.replace(targetTask2, targetTask1, replacingTask);
+        try {
+            modelInstance1.replace(targetTask2, targetTask1, replacingTask);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         tasks = (List<Task>) modelInstance1.getModelElementsByType(Task.class);
 

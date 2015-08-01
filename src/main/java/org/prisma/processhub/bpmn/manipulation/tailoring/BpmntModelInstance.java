@@ -29,8 +29,8 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void delete(FlowNode targetNode);
     void delete(String targetNodeId) throws FlowNodeNotFoundException;
 
-    void delete(FlowNode startingNode, FlowNode endingNode);
-    void delete(String startingNodeId, String endingNodeId) throws FlowNodeNotFoundException;
+    void delete(FlowNode startingNode, FlowNode endingNode) throws Exception;
+    void delete(String startingNodeId, String endingNodeId) throws Exception;
 
     void replace(FlowNode targetNode, FlowNode replacingNode);
     void replace(String targetNodeId, FlowNode FlowNode) throws FlowNodeNotFoundException;
@@ -38,11 +38,11 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void replace(FlowNode targetNode, BpmnModelInstance replacingFragment);
     void replace(String targetNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException;
 
-    void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode);
-    void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws FlowNodeNotFoundException;
+    void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) throws Exception;
+    void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws Exception;
 
-    void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment);
-    void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException;
+    void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) throws Exception;
+    void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws Exception;
 
 
 
