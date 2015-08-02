@@ -219,21 +219,21 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
         // Replacing a starting node
         if (numberPreviousNodes == 0) {
-            BpmnElementCreator.appendTo(this, targetNode, replacingNode);
+            BpmnElementCreator.appendTo(targetNode, replacingNode);
             FlowNode createdReplacingNode = getModelElementById(replacingNode.getId());
-            BpmnElementCreator.appendTo(this, createdReplacingNode, succedingNode);
+            BpmnElementCreator.appendTo(createdReplacingNode, succedingNode);
         }
         // Replacing an ending node
         else if (numberSuccedingNodes == 0) {
-            BpmnElementCreator.appendTo(this, previousNode, replacingNode);
+            BpmnElementCreator.appendTo(previousNode, replacingNode);
             FlowNode createdReplacingNode = getModelElementById(replacingNode.getId());
-            BpmnElementCreator.appendTo(this, previousNode, createdReplacingNode);
+            BpmnElementCreator.appendTo(previousNode, createdReplacingNode);
         }
 
         else {
-            BpmnElementCreator.appendTo(this, previousNode, replacingNode);
+            BpmnElementCreator.appendTo(previousNode, replacingNode);
             FlowNode createdReplacingNode = getModelElementById(replacingNode.getId());
-            BpmnElementCreator.appendTo(this, createdReplacingNode, succedingNode);
+            BpmnElementCreator.appendTo(createdReplacingNode, succedingNode);
         }
         BpmnElementRemover.removeFlowNode(this, targetNode.getId());
 
@@ -272,9 +272,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         BpmnElementRemover.removeFlowNode(replacingFragment, startEvent.getId());
         BpmnElementRemover.removeFlowNode(replacingFragment, endEvent.getId());
 
-        BpmnElementCreator.appendTo(this, previousNode, firstNode);
+        BpmnElementCreator.appendTo(previousNode, firstNode);
         FlowNode createdLastNode = getModelElementById(lastNode.getId());
-        BpmnElementCreator.appendTo(this, createdLastNode, succeedingNode);
+        BpmnElementCreator.appendTo(createdLastNode, succeedingNode);
 
         BpmnElementRemover.removeFlowNode(this, targetNode.getId());
 
@@ -307,9 +307,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         FlowNode previousNode = startingNode.getPreviousNodes().singleResult();
         FlowNode succeedingNode = endingNode.getSucceedingNodes().singleResult();
 
-        BpmnElementCreator.appendTo(this, previousNode, replacingNode);
+        BpmnElementCreator.appendTo(previousNode, replacingNode);
         FlowNode createdNode = getModelElementById(replacingNode.getId());
-        BpmnElementCreator.appendTo(this, createdNode, succeedingNode);
+        BpmnElementCreator.appendTo(createdNode, succeedingNode);
 
         for (FlowNode fn: replacedNodes) {
             BpmnElementRemover.removeFlowNode(this, fn.getId());
@@ -357,9 +357,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         BpmnElementRemover.removeFlowNode(replacingFragment, startEvent.getId());
         BpmnElementRemover.removeFlowNode(replacingFragment, endEvent.getId());
 
-        BpmnElementCreator.appendTo(this, previousNode, firstNode);
+        BpmnElementCreator.appendTo(previousNode, firstNode);
         FlowNode createdLastNode = getModelElementById(lastNode.getId());
-        BpmnElementCreator.appendTo(this, createdLastNode, succeedingNode);
+        BpmnElementCreator.appendTo(createdLastNode, succeedingNode);
 
         for (FlowNode fn: replacedNodes) {
             BpmnElementRemover.removeFlowNode(this, fn.getId());
@@ -440,6 +440,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             }
         }
 
+        // beforeOf and afterOf cannot be the same node
+        if (beforeOf == afterOf) {
+            return;
+        }
+
         BpmnElementRemover.isolateFlowNode(flowNodeToInsert);
 
         // Insert node in series before "beforeOf" node
@@ -478,9 +483,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
             previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
 
-            BpmnElementCreator.appendTo(this, afterOf.getSucceedingNodes().singleResult(), flowNodeToInsert);
+            BpmnElementCreator.appendTo(afterOf.getSucceedingNodes().singleResult(), flowNodeToInsert);
             FlowNode createdFlowNode = getModelElementById(flowNodeToInsert.getId());
-            BpmnElementCreator.appendTo(this, createdFlowNode, beforeOf.getPreviousNodes().singleResult());
+            BpmnElementCreator.appendTo(createdFlowNode, beforeOf.getPreviousNodes().singleResult());
         }
 
         return;
@@ -510,6 +515,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             }
         }
 
+        // beforeOf and afterOf cannot be the same node
+        if (beforeOf == afterOf) {
+            return;
+        }
+
         StartEvent startEvent = BpmnElementSearcher.findStartEvent(fragmentToInsert);
         EndEvent endEvent = BpmnElementSearcher.findEndEvent(fragmentToInsert);
         FlowNode firstNodeToInsert = BpmnElementSearcher.findFlowNodeAfterStartEvent(fragmentToInsert);
@@ -524,9 +534,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
             suppress(previousNode.getOutgoing().iterator().next());
 
-            BpmnElementCreator.appendTo(this, previousNode, firstNodeToInsert);
+            BpmnElementCreator.appendTo(previousNode, firstNodeToInsert);
             FlowNode lastInsertedNode = getModelElementById(lastNodeToInsertId);
-            BpmnElementCreator.appendTo(this, lastInsertedNode, beforeOf);
+            BpmnElementCreator.appendTo(lastInsertedNode, beforeOf);
 
             return;
         }
@@ -537,9 +547,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
             suppress(afterOf.getOutgoing().iterator().next());
 
-            BpmnElementCreator.appendTo(this, afterOf, firstNodeToInsert);
+            BpmnElementCreator.appendTo(afterOf, firstNodeToInsert);
             FlowNode lastInsertedNode = getModelElementById(lastNodeToInsertId);
-            BpmnElementCreator.appendTo(this, lastInsertedNode, succeedingNode);
+            BpmnElementCreator.appendTo(lastInsertedNode, succeedingNode);
 
             return;
         }
@@ -549,9 +559,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             if (afterOf.getSucceedingNodes().singleResult().equals(beforeOf)) {
                 suppress(afterOf.getOutgoing().iterator().next());
 
-                BpmnElementCreator.appendTo(this, afterOf, firstNodeToInsert);
+                BpmnElementCreator.appendTo(afterOf, firstNodeToInsert);
                 FlowNode lastInsertedNode = getModelElementById(lastNodeToInsertId);
-                BpmnElementCreator.appendTo(this, lastInsertedNode, beforeOf);
+                BpmnElementCreator.appendTo(lastInsertedNode, beforeOf);
 
                 return;
             }
@@ -570,9 +580,9 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
             previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
 
-            BpmnElementCreator.appendTo(this, afterOf.getSucceedingNodes().singleResult(), firstNodeToInsert);
+            BpmnElementCreator.appendTo(afterOf.getSucceedingNodes().singleResult(), firstNodeToInsert);
             FlowNode lastInsertedFlowNode = getModelElementById(lastNodeToInsertId);
-            BpmnElementCreator.appendTo(this, lastInsertedFlowNode, beforeOf.getPreviousNodes().singleResult());
+            BpmnElementCreator.appendTo(lastInsertedFlowNode, beforeOf.getPreviousNodes().singleResult());
         }
 
         return;
@@ -584,10 +594,177 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
+    public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {
+        if (flowNodeToInsert == null || afterOf == null || beforeOf == null) {
+            return;
+        }
 
-    public void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {}
-    public void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop) {}
-    public void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop) {}
+        // Unable to insert a node before a start event or after an end event
+        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
+            return;
+        }
+
+        // afterOf can't be a diverging gateway
+        if (afterOf instanceof Gateway) {
+            if (afterOf.getSucceedingNodes().count() > 1) {
+                return;
+            }
+        }
+
+        // beforeNode can't be a converging gateway
+        if (beforeOf instanceof Gateway) {
+            if (beforeOf.getPreviousNodes().count() > 1) {
+                return;
+            }
+        }
+
+        // beforeOf and afterOf cannot be the same node
+        if (beforeOf == afterOf) {
+            return;
+        }
+
+        BpmnElementRemover.isolateFlowNode(flowNodeToInsert);
+
+
+        // Insert in series (optional node)
+        if (afterOf.getSucceedingNodes().singleResult().equals(beforeOf)) {
+
+            BpmnElementRemover.removeAllSequenceFlows(this, afterOf.getOutgoing());
+
+            afterOf.builder().parallelGateway();
+            ParallelGateway conditionalGateway = (ParallelGateway) afterOf.getSucceedingNodes().singleResult();
+
+            BpmnElementCreator.conditionalAppendTo(conditionalGateway, flowNodeToInsert, null, condition);
+            FlowNode createdFlowNode = getModelElementById(flowNodeToInsert.getId());
+            createdFlowNode.builder().parallelGateway().connectTo(beforeOf.getId());
+
+            FlowNode convergentGateway = createdFlowNode.getSucceedingNodes().singleResult();
+            conditionalGateway.builder().connectTo(convergentGateway.getId());
+
+            return;
+        }
+
+        // Insert in parallel
+
+        FlowNode succeedingNode = afterOf.getSucceedingNodes().singleResult();
+
+        FlowNode previousNode = beforeOf.getPreviousNodes().singleResult();
+
+        BpmnElementRemover.removeAllSequenceFlows(this, afterOf.getOutgoing());
+        BpmnElementRemover.removeAllSequenceFlows(this, beforeOf.getIncoming());
+
+        afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+        previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+        FlowNode conditionalGateway = afterOf.getSucceedingNodes().singleResult();
+
+        BpmnElementCreator.conditionalAppendTo(conditionalGateway, flowNodeToInsert, null, condition);
+        FlowNode createdFlowNode = getModelElementById(flowNodeToInsert.getId());
+        BpmnElementCreator.appendTo(createdFlowNode, beforeOf.getPreviousNodes().singleResult());
+
+    }
+
+    public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop) {
+        if (fragmentToInsert == null || afterOf == null || beforeOf == null) {
+            return;
+        }
+
+        // Unable to insert a node before a start event or after an end event
+        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
+            return;
+        }
+
+        // afterOf can't be a diverging gateway
+        if (afterOf instanceof Gateway) {
+            if (afterOf.getSucceedingNodes().count() > 1) {
+                return;
+            }
+        }
+
+        // beforeNode can't be a converging gateway
+        if (beforeOf instanceof Gateway) {
+            if (beforeOf.getPreviousNodes().count() > 1) {
+                return;
+            }
+        }
+
+        // beforeOf and afterOf cannot be the same node
+        if (beforeOf == afterOf) {
+            return;
+        }
+
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(fragmentToInsert);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(fragmentToInsert);
+        FlowNode firstNodeToInsert = BpmnElementSearcher.findFlowNodeAfterStartEvent(fragmentToInsert);
+        String lastNodeToInsertId = BpmnElementSearcher.findFlowNodeBeforeEndEvent(fragmentToInsert).getId();
+
+        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), startEvent.getId());
+        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), endEvent.getId());
+
+
+        // Insert in series (optional node)
+        if (afterOf.getSucceedingNodes().singleResult().equals(beforeOf)) {
+
+            BpmnElementRemover.removeAllSequenceFlows(this, afterOf.getOutgoing());
+
+            afterOf.builder().parallelGateway().parallelGateway().connectTo(beforeOf.getId());
+            FlowNode conditionalGateway = afterOf.getSucceedingNodes().singleResult();
+            FlowNode convergentGateway = beforeOf.getPreviousNodes().singleResult();
+
+            BpmnElementCreator.conditionalAppendTo(conditionalGateway, firstNodeToInsert, null, condition);
+
+            FlowNode firstCreatedFlowNode = getModelElementById(firstNodeToInsert.getId());
+
+            for (FlowNode fn: firstNodeToInsert.getSucceedingNodes().list()) {
+                BpmnElementCreator.appendTo(firstCreatedFlowNode, fn);
+            }
+
+            FlowNode lastCreatedFlowNode = getModelElementById(lastNodeToInsertId);
+
+            lastCreatedFlowNode.builder().connectTo(convergentGateway.getId());
+
+            return;
+        }
+
+        // Insert in parallel
+
+        FlowNode succeedingNode = afterOf.getSucceedingNodes().singleResult();
+        FlowNode previousNode = beforeOf.getPreviousNodes().singleResult();
+
+        BpmnElementRemover.removeAllSequenceFlows(this, afterOf.getOutgoing());
+        BpmnElementRemover.removeAllSequenceFlows(this, beforeOf.getIncoming());
+
+        afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+        previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+
+        FlowNode conditionalGateway = afterOf.getSucceedingNodes().singleResult();
+        FlowNode convergentGateway = beforeOf.getPreviousNodes().singleResult();
+
+        BpmnElementCreator.conditionalAppendTo(conditionalGateway, firstNodeToInsert, null, condition);
+
+        FlowNode firstCreatedFlowNode = getModelElementById(firstNodeToInsert.getId());
+
+        for (FlowNode fn: firstNodeToInsert.getSucceedingNodes().list()) {
+            BpmnElementCreator.appendTo(firstCreatedFlowNode, fn);
+        }
+
+        FlowNode lastCreatedFlowNode = getModelElementById(lastNodeToInsertId);
+
+        lastCreatedFlowNode.builder().connectTo(convergentGateway.getId());
+
+        return;
+
+
+    }
+
+    public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop) {
+        conditionalInsert(
+                afterOf,
+                beforeOf,
+                fragmentToInsert.getModelElementsByType(Process.class).iterator().next(),
+                condition,
+                inLoop
+        );
+    }
 
 //    public void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}
 //    public void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert){}

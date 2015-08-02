@@ -44,8 +44,6 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) throws Exception;
     void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws Exception;
 
-
-
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
     void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);
@@ -55,9 +53,11 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert);
     void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert);
     void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert);
-    void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop);
-    void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop);
-    void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop);
+
+    // TODO: find out what is the purpose of "inLoop"
+    void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop);
+    void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop);
+    void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop);
 
 //    void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
 //    void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);

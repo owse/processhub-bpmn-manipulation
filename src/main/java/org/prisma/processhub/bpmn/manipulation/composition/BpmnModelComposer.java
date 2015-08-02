@@ -49,7 +49,7 @@ public class BpmnModelComposer
             StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelsToJoin[i]);
             FlowNode currentFirstFlowNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelsToJoin[i]);
             BpmnElementRemover.removeFlowNode(modelsToJoin[i], startEvent.getId());
-            BpmnElementCreator.appendTo(resultModel, lastFlowNodeResult, currentFirstFlowNode);
+            BpmnElementCreator.appendTo(lastFlowNodeResult, currentFirstFlowNode);
 
             if (i+1 < modelsToJoin.length) {
                 BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
@@ -95,7 +95,7 @@ public class BpmnModelComposer
             FlowNode firstFlowNodeCurrent = BpmnElementSearcher.findFlowNodeAfterStartEvent(currentModel);
             BpmnElementRemover.removeFlowNode(currentModel, startEvent.getId());
 
-            BpmnElementCreator.appendTo(resultModel, lastFlowNodeResult, firstFlowNodeCurrent);
+            BpmnElementCreator.appendTo(lastFlowNodeResult, firstFlowNodeCurrent);
 
             if (modelIt.hasNext()) {
                 BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
@@ -209,13 +209,13 @@ public class BpmnModelComposer
 
             // Connects the processes to the split gateway
             for (FlowNode fn: afterStartNodes) {
-                BpmnElementCreator.appendTo(resultModel, splitGateway, fn);
+                BpmnElementCreator.appendTo(splitGateway, fn);
             }
 
             // Connects the last nodes to the join gateway
             for (FlowNode fn: beforeEndNodes) {
                 FlowNode ln = resultModel.getModelElementById(fn.getId());
-                BpmnElementCreator.appendTo(resultModel, ln, joinGateway);
+                BpmnElementCreator.appendTo(ln, joinGateway);
             }
         }
 
@@ -329,13 +329,13 @@ public class BpmnModelComposer
 
             // Connects the processes to the split gateway
             for (FlowNode fn: afterStartNodes) {
-                BpmnElementCreator.appendTo(resultModel, splitGateway, fn);
+                BpmnElementCreator.appendTo(splitGateway, fn);
             }
 
             // Connects the last nodes to the join gateway
             for (FlowNode fn: beforeEndNodes) {
                 FlowNode ln = resultModel.getModelElementById(fn.getId());
-                BpmnElementCreator.appendTo(resultModel, ln, joinGateway);
+                BpmnElementCreator.appendTo(ln, joinGateway);
             }
         }
 
