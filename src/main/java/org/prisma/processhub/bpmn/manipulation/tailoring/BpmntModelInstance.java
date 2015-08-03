@@ -46,7 +46,9 @@ public interface BpmntModelInstance extends BpmnModelInstance {
 
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
-    void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);
+
+    void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode) throws Exception;
+    void parallelize(String targetStartingNodeId, String targetEndingNodeId) throws Exception;
 
     void split(Task targetTask, BpmnModelInstance newSubProcessModel);
 

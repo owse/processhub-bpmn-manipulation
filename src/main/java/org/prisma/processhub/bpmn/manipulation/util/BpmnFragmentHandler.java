@@ -30,9 +30,8 @@ public final class BpmnFragmentHandler {
         return flowNodes;
     }
 
-    // TODO: fix mapping for incomplete process fragments
     // Recursive iteration from mapProcessFragment
-    public static void mapProcessFragment(Collection<FlowNode> flowNodes, FlowNode currentNode, FlowNode endingNode) throws Exception {
+    private static void mapProcessFragment(Collection<FlowNode> flowNodes, FlowNode currentNode, FlowNode endingNode) throws Exception {
 
         // If node already created, return
         for (FlowNode fn: flowNodes) {
