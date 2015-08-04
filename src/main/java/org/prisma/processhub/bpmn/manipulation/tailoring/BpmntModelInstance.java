@@ -3,8 +3,7 @@ package org.prisma.processhub.bpmn.manipulation.tailoring;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
-import org.prisma.processhub.bpmn.manipulation.exception.FlowElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.exception.FlowNodeNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 
 //import java.util.List;
 
@@ -14,7 +13,7 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     // Low-level operations
     void suppress (FlowElement targetElement);
 
-    void suppress (String targetElementId) throws FlowElementNotFoundException;
+    void suppress (String targetElementId);
 
     // Due to Camunda API's fluent builder API, makes no sense to implement it
     //void contribute (FlowElement targetElement);
@@ -24,25 +23,25 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     //void modify (FlowElement targetElement, List<String> properties);
 
     // High-level operations
-    void rename(String targetElementId, String newName) throws FlowElementNotFoundException;
+    void rename(String targetElementId, String newName);
 
     void delete(FlowNode targetNode);
-    void delete(String targetNodeId) throws FlowNodeNotFoundException;
+    void delete(String targetNodeId);
 
-    void delete(FlowNode startingNode, FlowNode endingNode) throws Exception;
-    void delete(String startingNodeId, String endingNodeId) throws Exception;
+    void delete(FlowNode startingNode, FlowNode endingNode);
+    void delete(String startingNodeId, String endingNodeId);
 
     void replace(FlowNode targetNode, FlowNode replacingNode);
-    void replace(String targetNodeId, FlowNode FlowNode) throws FlowNodeNotFoundException;
+    void replace(String targetNodeId, FlowNode FlowNode);
 
     void replace(FlowNode targetNode, BpmnModelInstance replacingFragment);
-    void replace(String targetNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException;
+    void replace(String targetNodeId, BpmnModelInstance replacingFragment);
 
-    void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) throws Exception;
-    void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws Exception;
+    void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode);
+    void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode);
 
-    void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) throws Exception;
-    void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws Exception;
+    void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment);
+    void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment);
 
     void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
     void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);

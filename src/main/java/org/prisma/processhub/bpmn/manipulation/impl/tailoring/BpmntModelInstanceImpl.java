@@ -1,6 +1,5 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
-import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.impl.BpmnModelInstanceImpl;
 import org.camunda.bpm.model.bpmn.instance.*;
@@ -8,18 +7,12 @@ import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
-import org.prisma.processhub.bpmn.manipulation.exception.FlowElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.exception.FlowNodeNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
+import org.prisma.processhub.bpmn.manipulation.util.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements BpmntModelInstance {
 
@@ -28,22 +21,22 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         super(model, modelBuilder, document);
     }
 
-    
+
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-   
+
     // Remove flow element leaving the rest of the model untouched
     public void suppress (FlowElement targetElement) {
 
-        Collection<FlowElement> flowElements = getModelElementsByType(Process.class).iterator().next().getFlowElements();
-        flowElements.remove(targetElement);
+        BpmnModelElementInstance parentElement = (BpmnModelElementInstance) targetElement.getParentElement();
+        parentElement.removeChildElement(targetElement);
         return;
     }
 
-    public void suppress (String targetElementId) throws FlowElementNotFoundException {
+    public void suppress (String targetElementId) {
         FlowElement targetElement = getModelElementById(targetElementId);
         if (targetElement == null) {
-            throw new FlowElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
+            throw new ElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
         }
         suppress(targetElement);
         return;
@@ -53,10 +46,10 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     // Rename element
-    public void rename(String targetElementId, String newName) throws FlowElementNotFoundException {
+    public void rename(String targetElementId, String newName) {
         FlowElement flowElementToRename = getModelElementById(targetElementId);
         if (flowElementToRename == null) {
-            throw new FlowElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
+            throw new ElementNotFoundException("Flow Element with id \'" + targetElementId + "\' not found");
         }
         flowElementToRename.setName(newName);
         return;
@@ -64,11 +57,10 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     // Delete a node
     public void delete(FlowNode targetNode){
-        
+
         // Gateways, start and end events are not allowed to be deleted
-        if (targetNode instanceof Gateway || targetNode instanceof StartEvent || targetNode instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(targetNode instanceof Gateway || targetNode instanceof StartEvent || targetNode instanceof EndEvent,
+                "Argument FlowNode must not be a Gateway, StartEvent or EndEvent");
 
         // Get all incoming and outgoing sequence flows from the node
         Collection<SequenceFlow> incomingSequenceFlows = targetNode.getIncoming();
@@ -103,7 +95,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         // Gateways should have at least 3 incoming or outgoing sequence flows
         // Delete gateway if it has less than that discounting the sequence flow that
         // will be removed when the node is deleted
-        
+
         // Should also check if there is at least one sequence flow after node deletion
         Collection<Gateway> gatewaysToDelete = new ArrayList<Gateway>();
         for (Gateway g: gateways) {
@@ -131,16 +123,16 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void delete(String targetNodeId) throws FlowNodeNotFoundException {
+    public void delete(String targetNodeId) {
         FlowNode targetNode = getModelElementById(targetNodeId);
         if (targetNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
         }
         delete(targetNode);
         return;
     }
 
-    public void delete(FlowNode startingNode, FlowNode endingNode) throws Exception {
+    public void delete(FlowNode startingNode, FlowNode endingNode) {
         Collection<FlowNode> flowNodesToDelete = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
         if (startingNode instanceof StartEvent || endingNode instanceof EndEvent) {
             return;
@@ -165,61 +157,57 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    public void delete(String startingNodeId, String endingNodeId) throws Exception {
+    public void delete(String startingNodeId, String endingNodeId) {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
         if (startingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
         }
 
         if (endingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
         }
 
         delete(startingNode , endingNode);
         return;
     }
 
-    public void replace(FlowNode targetNode, FlowNode replacingNode) {
-        if (targetNode == null || replacingNode == null) {
-            return;
-        }
+    public void replace(FlowNode existingNode, FlowNode replacingNode) {
+        // Check null arguments
+        BpmnHelper.checkNotNull(existingNode, "Argument existingNode must not be null");
+        BpmnHelper.checkNotNull(replacingNode, "Argument replacingNode must not be null");
 
-        // A gateway cannot be replaced
-        if (targetNode instanceof Gateway) {
-            return;
-        }
+        // Gateways cannot be replaced
+        BpmnHelper.checkInvalidArgument(existingNode instanceof Gateway, "Argument existingNode cannot be a gateway");
 
-        // A start event can only be replaced by another start event
-        if (targetNode instanceof StartEvent && !(replacingNode instanceof StartEvent)) {
-            return;
-        }
+        // A start event can only be replaced by another start event and vice-versa
+        BpmnHelper.checkInvalidArgument(!(existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
+                "One of the nodes is a StartEvent and the other is not");
 
-        // An end event can only be replaced by another end event
-        if (targetNode instanceof EndEvent && !(replacingNode instanceof EndEvent)) {
-            return;
-        }
+        // An end event can only be replaced by another end event and vice-versa
+        BpmnHelper.checkInvalidArgument(!(existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
+                "One of the nodes is a StartEvent and the other is not");
 
         // Make sure that the replacing node has no other nodes connected to it
         BpmnElementRemover.isolateFlowNode(replacingNode);
 
-        int numberPreviousNodes = targetNode.getPreviousNodes().count();
-        int numberSuccedingNodes = targetNode.getSucceedingNodes().count();
+        int numberPreviousNodes = existingNode.getPreviousNodes().count();
+        int numberSuccedingNodes = existingNode.getSucceedingNodes().count();
         FlowNode previousNode = null;
         FlowNode succedingNode = null;
 
         if (numberPreviousNodes > 0) {
-            previousNode = targetNode.getPreviousNodes().singleResult();
+            previousNode = existingNode.getPreviousNodes().singleResult();
         }
 
         if (numberSuccedingNodes > 0) {
-            succedingNode = targetNode.getSucceedingNodes().singleResult();
+            succedingNode = existingNode.getSucceedingNodes().singleResult();
         }
 
         // Replacing a starting node
         if (numberPreviousNodes == 0) {
-            BpmnElementCreator.appendTo(targetNode, replacingNode);
+            BpmnElementCreator.appendTo(existingNode, replacingNode);
             FlowNode createdReplacingNode = getModelElementById(replacingNode.getId());
             BpmnElementCreator.appendTo(createdReplacingNode, succedingNode);
         }
@@ -235,39 +223,37 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             FlowNode createdReplacingNode = getModelElementById(replacingNode.getId());
             BpmnElementCreator.appendTo(createdReplacingNode, succedingNode);
         }
-        BpmnElementRemover.removeFlowNode(this, targetNode.getId());
+        BpmnElementRemover.removeFlowNode(this, existingNode.getId());
 
         return;
     }
 
-    public void replace(String targetNodeId, FlowNode replacingNode) {
-        FlowNode targetNode = getModelElementById(targetNodeId);
-        replace(targetNode, replacingNode);
+    public void replace(String existingNodeId, FlowNode replacingNode) {
+        FlowNode existingNode = getModelElementById(existingNodeId);
+        replace(existingNode, replacingNode);
         return;
     }
 
-    public void replace(FlowNode targetNode, BpmnModelInstance replacingFragment) {
-        if (targetNode == null || replacingFragment == null) {
-            return;
-        }
+    public void replace(FlowNode existingNode, BpmnModelInstance replacingFragment) {
+        // Check null arguments
+        BpmnHelper.checkNotNull(existingNode, "Argument existingNode must not be null");
+        BpmnHelper.checkNotNull(replacingFragment, "Argument replacingFragment must not be null");
+
+        // Gateways cannot be replaced
+        BpmnHelper.checkInvalidArgument(existingNode instanceof Gateway, "Argument existingNode cannot be a gateway");
 
         // Gateways, start events or end events cannot be replaced
-        if (targetNode instanceof Gateway || targetNode instanceof StartEvent || targetNode instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(existingNode instanceof Gateway || existingNode instanceof StartEvent || existingNode instanceof EndEvent,
+                "Gateways, StartEvent or EndEvent existingNode cannot be replaced");
 
         StartEvent startEvent = BpmnElementSearcher.findStartEvent(replacingFragment);
         EndEvent endEvent = BpmnElementSearcher.findEndEvent(replacingFragment);
 
-        if (startEvent == null || endEvent == null) {
-            return;
-        }
-
         FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(replacingFragment);
         FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(replacingFragment);
 
-        FlowNode previousNode = targetNode.getPreviousNodes().singleResult();
-        FlowNode succeedingNode = targetNode.getSucceedingNodes().singleResult();
+        FlowNode previousNode = existingNode.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = existingNode.getSucceedingNodes().singleResult();
 
         BpmnElementRemover.removeFlowNode(replacingFragment, startEvent.getId());
         BpmnElementRemover.removeFlowNode(replacingFragment, endEvent.getId());
@@ -276,28 +262,29 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         FlowNode createdLastNode = getModelElementById(lastNode.getId());
         BpmnElementCreator.appendTo(createdLastNode, succeedingNode);
 
-        BpmnElementRemover.removeFlowNode(this, targetNode.getId());
+        BpmnElementRemover.removeFlowNode(this, existingNode.getId());
 
         return;
     }
 
-    public void replace(String targetNodeId, BpmnModelInstance replacingFragment) throws FlowNodeNotFoundException {
-        FlowNode targetNode = getModelElementById(targetNodeId);
-        if (targetNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
+    public void replace(String existingNodeId, BpmnModelInstance replacingFragment) {
+        FlowNode existingNode = getModelElementById(existingNodeId);
+        if (existingNode == null) {
+            throw new ElementNotFoundException("Flow Node with id \'" + existingNodeId +  "\' not found");
         }
-        replace(targetNode, replacingFragment);
+        replace(existingNode, replacingFragment);
         return;
     }
 
-    public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) throws Exception {
-        if (startingNode == null || endingNode == null || replacingNode == null) {
-            return;
-        }
+    public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) {
+        // Check null arguments
+        BpmnHelper.checkNotNull(startingNode, "Argument startingNode must not be null");
+        BpmnHelper.checkNotNull(endingNode, "Argument endingNode must not be null");
+        BpmnHelper.checkNotNull(replacingNode, "Argument replacingNode must not be null");
 
         // Can't replace fragment with a start or end event
         if (replacingNode instanceof StartEvent || replacingNode instanceof EndEvent) {
-            return;
+            throw new IllegalArgumentException("Argument replacingNode must not be a StartEvent or EndEvent");
         }
 
         BpmnElementRemover.isolateFlowNode(replacingNode);
@@ -318,33 +305,30 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return;
     }
 
-    public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) throws Exception {
+    public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
         if (startingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
         }
 
         if (endingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
         }
 
         replace(startingNode, endingNode, replacingNode);
         return;
     }
 
-    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) throws Exception {
-        if (startingNode == null || endingNode == null || replacingFragment == null) {
-            return;
-        }
+    public void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment) {
+        // Check null arguments
+        BpmnHelper.checkNotNull(startingNode, "Argument startingNode must not be null");
+        BpmnHelper.checkNotNull(endingNode, "Argument endingNode must not be null");
+        BpmnHelper.checkNotNull(replacingFragment, "Argument replacingFragment must not be null");
 
         StartEvent startEvent = BpmnElementSearcher.findStartEvent(replacingFragment);
         EndEvent endEvent = BpmnElementSearcher.findEndEvent(replacingFragment);
-
-        if (startEvent == null || endEvent == null) {
-            return;
-        }
 
         Collection<FlowNode> replacedNodes = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
 
@@ -369,16 +353,16 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     }
 
-    public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) throws Exception {
+    public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) {
         FlowNode startingNode = getModelElementById(startingNodeId);
         FlowNode endingNode = getModelElementById(endingNodeId);
 
         if (startingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + startingNodeId +  "\' not found");
         }
 
         if (endingNode == null) {
-            throw new FlowNodeNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
+            throw new ElementNotFoundException("Flow Node with id \'" + endingNodeId +  "\' not found");
         }
 
         replace(startingNode, endingNode, replacingFragment);
@@ -390,16 +374,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode){}
 
     public void split(Task targetTask, BpmnModelInstance newSubProcessModel){
-        if (targetTask == null || newSubProcessModel == null) {
-            return;
-        }
+        BpmnHelper.checkNotNull(targetTask, "Argument targetTask must not be null");
+        BpmnHelper.checkNotNull(newSubProcessModel, "Argument newSubProcessModel must not be null");
 
         StartEvent sourceStartEvent = BpmnElementSearcher.findStartEvent(newSubProcessModel);
         EndEvent sourceEndEvent = BpmnElementSearcher.findEndEvent(newSubProcessModel);
-
-        if (sourceStartEvent == null || sourceEndEvent == null) {
-            return;
-        }
 
         FlowNode previousNode = targetTask.getPreviousNodes().singleResult();
         FlowNode succeedingNode = targetTask.getSucceedingNodes().singleResult();
@@ -407,7 +386,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         String targetTaskId = targetTask.getId();
         String targetTaskName = targetTask.getName();
 
-        Process newSubProcess = newSubProcessModel.getModelElementsByType(Process.class).iterator().next();
+        Process newSubProcess = BpmnElementSearcher.findFirstProcess(this);
         delete(targetTask);
         previousNode.builder().subProcess(targetTaskId).name(targetTaskName);
         SubProcess createdSubProcess = getModelElementById(targetTaskId);
@@ -417,32 +396,29 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     }
 
     public void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert) {
-        if (flowNodeToInsert == null || (afterOf == null && beforeOf == null)) {
-            return;
+        // Check null arguments
+        BpmnHelper.checkNotNull(flowNodeToInsert, "Argument flowNodeToInsert must not be null");
+        if (afterOf == null && beforeOf == null) {
+            throw new IllegalArgumentException("Arguments afterOf and beforeOf must not both be null");
         }
 
         // Unable to insert a node before a start event or after an end event
-        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(beforeOf instanceof StartEvent, "Argument beforeOf must not be a StartEvent");
+        BpmnHelper.checkInvalidArgument(afterOf instanceof EndEvent, "Argument afterOf must not be an EndEvent");
 
         // afterOf can't be a diverging gateway
-        if (afterOf instanceof Gateway) {
-            if (afterOf.getSucceedingNodes().count() > 1) {
-                return;
-            }
+        if (afterOf instanceof Gateway && BpmnHelper.isGatewayDivergent((Gateway) afterOf)) {
+            throw new IllegalArgumentException("Argument afterOf must not be a diverging gateway");
         }
 
         // beforeNode can't be a converging gateway
-        if (beforeOf instanceof Gateway) {
-            if (beforeOf.getPreviousNodes().count() > 1) {
-                return;
-            }
+        if (beforeOf instanceof Gateway && BpmnHelper.isGatewayConvergent((Gateway) beforeOf)) {
+            throw new IllegalArgumentException("Argument beforeOf must not be a converging gateway");
         }
 
         // beforeOf and afterOf cannot be the same node
         if (beforeOf == afterOf) {
-            return;
+            throw new IllegalArgumentException("Argument afterOf must not be the same as beforeOf");
         }
 
         BpmnElementRemover.isolateFlowNode(flowNodeToInsert);
@@ -492,32 +468,29 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     }
 
     public void insert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert) {
-        if (fragmentToInsert == null || (afterOf == null && beforeOf == null)) {
-            return;
+        // Check null arguments
+        BpmnHelper.checkNotNull(fragmentToInsert, "Argument fragmentToInsert must not be null");
+        if (afterOf == null && beforeOf == null) {
+            throw new IllegalArgumentException("Arguments afterOf and beforeOf must not both be null");
         }
 
         // Unable to insert a node before a start event or after an end event
-        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(beforeOf instanceof StartEvent, "Argument beforeOf must not be a StartEvent");
+        BpmnHelper.checkInvalidArgument(afterOf instanceof EndEvent, "Argument afterOf must not be an EndEvent");
 
         // afterOf can't be a diverging gateway
-        if (afterOf instanceof Gateway) {
-            if (afterOf.getSucceedingNodes().count() > 1) {
-                return;
-            }
+        if (afterOf instanceof Gateway && BpmnHelper.isGatewayDivergent((Gateway) afterOf)) {
+            throw new IllegalArgumentException("Argument afterOf must not be a diverging gateway");
         }
 
         // beforeNode can't be a converging gateway
-        if (beforeOf instanceof Gateway) {
-            if (beforeOf.getPreviousNodes().count() > 1) {
-                return;
-            }
+        if (beforeOf instanceof Gateway && BpmnHelper.isGatewayConvergent((Gateway) beforeOf)) {
+            throw new IllegalArgumentException("Argument beforeOf must not be a converging gateway");
         }
 
         // beforeOf and afterOf cannot be the same node
         if (beforeOf == afterOf) {
-            return;
+            throw new IllegalArgumentException("Argument afterOf must not be the same as beforeOf");
         }
 
         StartEvent startEvent = BpmnElementSearcher.findStartEvent(fragmentToInsert);
@@ -590,37 +563,33 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     }
 
     public void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert) {
-        insert(afterOf, beforeOf, fragmentToInsert.getModelElementsByType(Process.class).iterator().next());
+        insert(afterOf, beforeOf, BpmnElementSearcher.findFirstProcess(fragmentToInsert));
         return;
     }
 
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {
-        if (flowNodeToInsert == null || afterOf == null || beforeOf == null) {
-            return;
-        }
+        // Check null arguments
+        BpmnHelper.checkNotNull(flowNodeToInsert, "Argument flowNodeToInsert must not be null");
+        BpmnHelper.checkNotNull(afterOf, "Arguments afterOf must not be null");
+        BpmnHelper.checkNotNull(beforeOf, "Arguments beforeOf must not be null");
 
         // Unable to insert a node before a start event or after an end event
-        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(beforeOf instanceof StartEvent, "Argument beforeOf must not be a StartEvent");
+        BpmnHelper.checkInvalidArgument(afterOf instanceof EndEvent, "Argument afterOf must not be an EndEvent");
 
         // afterOf can't be a diverging gateway
-        if (afterOf instanceof Gateway) {
-            if (afterOf.getSucceedingNodes().count() > 1) {
-                return;
-            }
+        if (afterOf instanceof Gateway && BpmnHelper.isGatewayDivergent((Gateway) afterOf)) {
+            throw new IllegalArgumentException("Argument afterOf must not be a diverging gateway");
         }
 
         // beforeNode can't be a converging gateway
-        if (beforeOf instanceof Gateway) {
-            if (beforeOf.getPreviousNodes().count() > 1) {
-                return;
-            }
+        if (beforeOf instanceof Gateway && BpmnHelper.isGatewayConvergent((Gateway) beforeOf)) {
+            throw new IllegalArgumentException("Argument beforeOf must not be a converging gateway");
         }
 
         // beforeOf and afterOf cannot be the same node
         if (beforeOf == afterOf) {
-            return;
+            throw new IllegalArgumentException("Argument afterOf must not be the same as beforeOf");
         }
 
         BpmnElementRemover.isolateFlowNode(flowNodeToInsert);
@@ -664,32 +633,28 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     }
 
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop) {
-        if (fragmentToInsert == null || afterOf == null || beforeOf == null) {
-            return;
-        }
+        // Check null arguments
+        BpmnHelper.checkNotNull(fragmentToInsert, "Argument fragmentToInsert must not be null");
+        BpmnHelper.checkNotNull(afterOf, "Arguments afterOf must not be null");
+        BpmnHelper.checkNotNull(beforeOf, "Arguments beforeOf must not be null");
 
         // Unable to insert a node before a start event or after an end event
-        if (beforeOf instanceof StartEvent || afterOf instanceof EndEvent) {
-            return;
-        }
+        BpmnHelper.checkInvalidArgument(beforeOf instanceof StartEvent, "Argument beforeOf must not be a StartEvent");
+        BpmnHelper.checkInvalidArgument(afterOf instanceof EndEvent, "Argument afterOf must not be an EndEvent");
 
         // afterOf can't be a diverging gateway
-        if (afterOf instanceof Gateway) {
-            if (afterOf.getSucceedingNodes().count() > 1) {
-                return;
-            }
+        if (afterOf instanceof Gateway && BpmnHelper.isGatewayDivergent((Gateway) afterOf)) {
+            throw new IllegalArgumentException("Argument afterOf must not be a diverging gateway");
         }
 
         // beforeNode can't be a converging gateway
-        if (beforeOf instanceof Gateway) {
-            if (beforeOf.getPreviousNodes().count() > 1) {
-                return;
-            }
+        if (beforeOf instanceof Gateway && BpmnHelper.isGatewayConvergent((Gateway) beforeOf)) {
+            throw new IllegalArgumentException("Argument beforeOf must not be a converging gateway");
         }
 
         // beforeOf and afterOf cannot be the same node
         if (beforeOf == afterOf) {
-            return;
+            throw new IllegalArgumentException("Argument afterOf must not be the same as beforeOf");
         }
 
         StartEvent startEvent = BpmnElementSearcher.findStartEvent(fragmentToInsert);

@@ -19,7 +19,7 @@ import java.util.List;
 public class BpmntModelInstanceImplTest extends TestCase {
 
     public void testSuppress() throws Exception {
-        System.out.print("Testing suppress");
+        System.out.println("Testing suppress");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
@@ -45,7 +45,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testRename() throws Exception {
-        System.out.print("Testing rename");
+        System.out.println("Testing rename");
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
         // Select a flow node to rename
@@ -64,7 +64,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testDeleteSingleNode() throws Exception {
-        System.out.print("Testing delete (single node)");
+        System.out.println("Testing delete (single node)");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
         FlowNode flowNodeToDelete = modelInstance.getModelElementsByType(Task.class).iterator().next();
@@ -94,7 +94,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testDeleteMultipleNodes() {
-        System.out.print("Testing delete (multiple nodes)");
+        System.out.println("Testing delete (multiple nodes)");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
 
@@ -153,7 +153,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
 //
 ////        System.out.println("New tasks");
 ////        for (Task task: tasks) {
-////            System.out.print(task.getId());
+////            System.out.println(task.getId());
 ////            System.out.println("  " + task.getSucceedingNodes().singleResult().getId());
 ////        }
 //
@@ -163,7 +163,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
 //    }
 
     public void testSplit() {
-        System.out.print("Testing split");
+        System.out.println("Testing split");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
         BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
@@ -208,7 +208,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testInsertSingleNodeInSeries() {
-        System.out.print("Testing insert in series (single node)");
+        System.out.println("Testing insert in series (single node)");
 
         // First try (afterOf == null)
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -286,7 +286,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testInsertSingleNodeInParallel() {
-        System.out.print("Testing insert in parallel (single node)");
+        System.out.println("Testing insert in parallel (single node)");
 
         // First try (afterOf == null)
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -335,7 +335,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testInsertFragmentInSeries() {
-        System.out.print("Testing insert in series (fragment)");
+        System.out.println("Testing insert in series (fragment)");
 
         // First try (afterOf == null)
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -413,7 +413,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testInsertFragmentInParallel() {
-        System.out.print("Testing insert in parallel (fragment)");
+        System.out.println("Testing insert in parallel (fragment)");
 
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
         BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
@@ -462,7 +462,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testConditionalInsertSingleNode() {
-        System.out.print("Testing conditional insert (single node)");
+        System.out.println("Testing conditional insert (single node)");
 
         // First try (nodes in succession)
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -532,7 +532,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
     }
 
     public void testConditionalInsertFragment() {
-        System.out.print("Testing conditional insert (fragment)");
+        System.out.println("Testing conditional insert (fragment)");
 
         // First try (nodes in succession)
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));

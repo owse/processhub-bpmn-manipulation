@@ -19,6 +19,7 @@ local.properties
 
 # IntelliJ IDEA core
 .idea
+*.iml
 
 # External tool builders
 .externalToolBuilders/

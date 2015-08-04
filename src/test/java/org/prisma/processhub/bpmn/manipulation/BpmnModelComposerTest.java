@@ -78,7 +78,6 @@ public class BpmnModelComposerTest
         BpmnModelInstance modelInstance3 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
         BpmnModelInstance modelInstance4 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
-        // Extracting start events
         StartEvent startEventFromModel1 = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
         StartEvent startEventFromModel2 = modelInstance2.getModelElementsByType(StartEvent.class).iterator().next();
         StartEvent startEventFromModel3 = modelInstance3.getModelElementsByType(StartEvent.class).iterator().next();
@@ -118,7 +117,10 @@ public class BpmnModelComposerTest
         BpmnModelInstance resultModel1 = bpmnModelComposer.joinModelsInParallel(modelInstance1, modelInstance2);
 
         // Gateways created
-        FlowNode gatewayAfterStart1 = startEventFromModel1.getOutgoing().iterator().next().getTarget();
+        for (FlowNode node : modelInstance1.getModelElementsByType(FlowNode.class)) {
+            System.out.println(node);
+        }
+        FlowNode gatewayAfterStart1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(resultModel1);
         FlowNode gatewayBeforeEnd1 = endEventFromModel1.getIncoming().iterator().next().getSource();
 
         // Start event from model 1 is maintained
