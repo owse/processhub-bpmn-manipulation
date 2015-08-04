@@ -371,7 +371,64 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     public void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode){}
     public void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode){}
-    public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode){}
+
+    public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode) throws Exception {
+        if (targetStartingNode == targetEndingNode) {
+            throw new Exception("Unable to parallelize a single node");
+        }
+
+        Collection<FlowNode> fragment = BpmnFragmentHandler.mapProcessFragment(targetStartingNode, targetEndingNode);
+
+        for (FlowNode fn: fragment) {
+            if (fn instanceof StartEvent) {
+                throw new Exception("Fragment to parallelize cannot contain start events");
+            }
+            if (fn instanceof EndEvent) {
+                throw new Exception("Fragment to parallelize cannot contain end events");
+            }
+            if (fn instanceof Gateway) {
+                throw new Exception("Fragment to parallelize cannot contain gateways");
+            }
+        }
+
+        FlowNode firstNode = targetStartingNode.getPreviousNodes().singleResult();
+        FlowNode lastNode = targetEndingNode.getSucceedingNodes().singleResult();
+
+        BpmnElementRemover.removeAllSequenceFlows(this, targetStartingNode.getIncoming());
+
+        for (FlowNode fn: fragment) {
+            BpmnElementRemover.removeAllSequenceFlows(this, fn.getOutgoing());
+        }
+
+        firstNode.builder()
+                .parallelGateway()
+                    .connectTo(targetStartingNode.getId())
+                .parallelGateway()
+                    .connectTo(lastNode.getId());
+
+        FlowNode divergentGateway = targetStartingNode.getPreviousNodes().singleResult();
+        FlowNode convergentGateway = targetStartingNode.getSucceedingNodes().singleResult();
+
+        for (FlowNode fn: fragment) {
+            if (fn != targetStartingNode) {
+                divergentGateway.builder().connectTo(fn.getId()).connectTo(convergentGateway.getId());
+            }
+        }
+
+
+
+
+    }
+    public void parallelize(String targetStartingNodeId, String targetEndingNodeId) throws Exception {
+        FlowNode targetStartingNode = getModelElementById(targetStartingNodeId);
+        FlowNode targetEndingNode = getModelElementById(targetEndingNodeId);
+
+        if (targetStartingNode == null || targetEndingNode == null) {
+            throw new Exception("Flow node not found");
+        }
+
+        parallelize(targetStartingNode, targetEndingNode);
+    }
 
     public void split(Task targetTask, BpmnModelInstance newSubProcessModel){
         BpmnHelper.checkNotNull(targetTask, "Argument targetTask must not be null");

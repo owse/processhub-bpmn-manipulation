@@ -162,6 +162,40 @@ public class BpmntModelInstanceImplTest extends TestCase {
 //        return;
 //    }
 
+    public void testParallelize() {
+        System.out.print("Testing parallelize");
+
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+
+        FlowNode startingNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode endingNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        String startingNodeId = startingNode.getId();
+        String endingNodeId = endingNode.getId();
+
+        try {
+            modelInstance1.parallelize(startingNodeId, endingNodeId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        FlowNode divergentGateway = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode convergentGateway = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        // Verifies that the parallel gateways were correctly created
+        assert divergentGateway instanceof ParallelGateway;
+        assert convergentGateway instanceof  ParallelGateway;
+
+        // Verifies that all nodes inside the input fragment are connected only to the created gateways
+        assertEquals(divergentGateway, startingNode.getPreviousNodes().singleResult());
+        assertEquals(divergentGateway, endingNode.getPreviousNodes().singleResult());
+        assertEquals(convergentGateway, startingNode.getSucceedingNodes().singleResult());
+        assertEquals(convergentGateway, endingNode.getSucceedingNodes().singleResult());
+
+        System.out.println(" ......................... ok");
+
+    }
+
     public void testSplit() {
         System.out.println("Testing split");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -603,4 +637,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
         System.out.println(" ....... ok");
     }
+
+
 }
