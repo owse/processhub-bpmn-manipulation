@@ -688,5 +688,19 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance3);
     }
 
+    public void testFragmentValidation() {
+        System.out.println("Testing fragment validation");
+
+        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
+
+        StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
+        FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
+        FlowNode targetStartingNode = beforeOf.getSucceedingNodes().singleResult().getSucceedingNodes().singleResult();
+        FlowNode targetEndingNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance).getPreviousNodes().singleResult();
+
+        // Moving the parallel fragment to the start of the process
+        modelInstance.move(targetStartingNode.getId(), targetEndingNode.getId(), afterOf.getId(), beforeOf.getId());
+    }
+
 
 }

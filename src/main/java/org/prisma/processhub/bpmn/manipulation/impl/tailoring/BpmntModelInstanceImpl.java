@@ -479,8 +479,8 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         BpmnHelper.checkInvalidArgument(targetEndingNode instanceof EndEvent,
                                         "Argument targetEndingNode must not be an end event");
 
-        // TODO: FINISH (targetStartingNode can't be converging gateway & targetEndingNode can't be diverging gateway)
-        // This validation should be done in validateFragment
+        // Validates the target fragment
+        BpmnFragmentHandler.mapProcessFragment(targetStartingNode, targetEndingNode);
 
         FlowNode previousNode = targetStartingNode.getPreviousNodes().singleResult();
         FlowNode succeedingNode = targetEndingNode.getSucceedingNodes().singleResult();

@@ -5,12 +5,14 @@ import org.prisma.processhub.bpmn.manipulation.exception.IllegalFragmentExceptio
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public final class BpmnFragmentHandler {
     private BpmnFragmentHandler() {}
 
     // Returns a list with all flow nodes between startingNode and endingNode (both inclusive)
     public static Collection<FlowNode> mapProcessFragment(FlowNode startingNode, FlowNode endingNode) {
+
         BpmnHelper.checkInvalidArgument(startingNode instanceof StartEvent || endingNode instanceof EndEvent,
                 "Nodes passed as arguments must not be of type StartEvent or EndEvent");
 
@@ -30,6 +32,10 @@ public final class BpmnFragmentHandler {
         }
         for (SequenceFlow sf: sequenceFlows) {
             mapProcessFragment(flowNodes, sf.getTarget(), endingNode);
+        }
+
+        if (!validateProcessFragment(flowNodes)) {
+            throw new IllegalFragmentException("Invalid BPMN fragment");
         }
 
         return flowNodes;
@@ -64,44 +70,39 @@ public final class BpmnFragmentHandler {
         }
     }
 
-    // TODO: CHANGE LOGIC
-    // First gateway found that is not mixed must be divergent
-    // Last gateway found that is not mixed must be convergent, if a divergent gateway exists
-    // All nodes succeeding the first gateway must be part of the input flowNodes
-
-
     // Verifies if a process fragment is valid
+    // Assumes that there are no mixed (convergent and divergent) gateways
     public static boolean validateProcessFragment(Collection<FlowNode> flowNodes) {
-        Collection<Gateway> gateways = new ArrayList<Gateway>();
 
-        // +1 if gateway divergent
-        // -1 if gateway convergent
-        //  0 if gateway mixed
-        int gatewaySymmetry = 0;
+        List<Gateway> gateways = new ArrayList<Gateway>();
 
         for (FlowNode fn: flowNodes) {
             if (fn instanceof Gateway) {
-                gateways.add((Gateway) fn);
+                if (BpmnHelper.isGatewayDivergent((Gateway) fn) || BpmnHelper.isGatewayConvergent((Gateway) fn)) {
+                    gateways.add((Gateway) fn);
+                }
             }
         }
 
-        for (Gateway g: gateways) {
-            int numberIncoming = g.getIncoming().size();
-            int numberOutgoing = g.getOutgoing().size();
-
-            if (numberOutgoing > numberIncoming) {
-                gatewaySymmetry++;
-            }
-            else if (numberOutgoing < numberIncoming) {
-                gatewaySymmetry--;
-            }
-        }
-
-        if (gatewaySymmetry == 0) {
+        if (gateways.size() == 0) {
             return true;
         }
 
-        return false;
+        if (BpmnHelper.isGatewayConvergent(gateways.get(0))) {
+            return false;
+        }
+
+        if (BpmnHelper.isGatewayDivergent(gateways.get(gateways.size() - 1))) {
+            return false;
+        }
+
+        Collection<FlowNode> succedingNodes = gateways.get(0).getSucceedingNodes().list();
+        Collection<FlowNode> previousNodes = gateways.get(gateways.size() - 1).getPreviousNodes().list();
+
+        // All nodes immediately after the first divergent gateway and immediately before the last convergent gateway
+        // must be part of the fragment
+        return flowNodes.containsAll(succedingNodes) && flowNodes.containsAll(previousNodes);
+
     }
 
 }
