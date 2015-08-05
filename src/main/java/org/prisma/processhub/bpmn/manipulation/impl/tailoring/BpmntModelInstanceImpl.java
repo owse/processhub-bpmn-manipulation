@@ -182,11 +182,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         BpmnHelper.checkInvalidArgument(existingNode instanceof Gateway, "Argument existingNode cannot be a gateway");
 
         // A start event can only be replaced by another start event and vice-versa
-        BpmnHelper.checkInvalidArgument(!(existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
+        BpmnHelper.checkInvalidArgument((existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
                 "One of the nodes is a StartEvent and the other is not");
 
         // An end event can only be replaced by another end event and vice-versa
-        BpmnHelper.checkInvalidArgument(!(existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
+        BpmnHelper.checkInvalidArgument((existingNode instanceof StartEvent ^ replacingNode instanceof StartEvent),
                 "One of the nodes is a StartEvent and the other is not");
 
         // Make sure that the replacing node has no other nodes connected to it

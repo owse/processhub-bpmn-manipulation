@@ -126,37 +126,113 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
-//    public void testReplaceNodeWithNode() {
-//        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-//        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
-//
-//        FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
-//
-//
-////        System.out.println("Original tasks");
-////        for (Task task: tasks) {
-////            System.out.println(task.getName());
-////        }
-//
-//
-////        try {
-////            modelInstance1.replace(targetTask2, targetTask1, replacingTask);
-////        } catch (Exception e) {
-////            e.printStackTrace();
-////        }
-////
-////        tasks = (List<Task>) modelInstance1.getModelElementsByType(Task.class);
-//
-////        System.out.println("New tasks");
-////        for (Task task: tasks) {
-////            System.out.println(task.getId());
-////            System.out.println("  " + task.getSucceedingNodes().singleResult().getId());
-////        }
-//
-//
-//
-//        return;
-//    }
+    public void testReplaceNodeWithNode() {
+        System.out.println("Testing replace (node for node)");
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
+        FlowNode replacedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
+
+        FlowNode previousNode = replacedTask.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = replacedTask.getSucceedingNodes().singleResult();
+
+        modelInstance1.replace(replacedTask.getId(), replacingTask);
+
+        FlowNode newTask = modelInstance1.getModelElementById(replacingTask.getId());
+
+        // Verify that the target node has been successfully replaced
+        assertEquals(previousNode, newTask.getPreviousNodes().singleResult());
+        assertEquals(succeedingNode, newTask.getSucceedingNodes().singleResult());
+        assertEquals(replacingTask.getId(), newTask.getId());
+
+        Bpmnt.validateModel(modelInstance1);
+
+    }
+
+    public void testReplaceNodeWithFragment() {
+        System.out.println("Testing replace (node for fragment)");
+
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        FlowNode replacedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
+
+        FlowNode previousNode = replacedTask.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = replacedTask.getSucceedingNodes().singleResult();
+
+        String startingNodeId = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2).getId();
+        String endingNodeId = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2).getId();
+
+        modelInstance1.replace(replacedTask.getId(), modelInstance2);
+
+        FlowNode startingNode = modelInstance1.getModelElementById(startingNodeId);
+        FlowNode endingNode = modelInstance1.getModelElementById(endingNodeId);
+
+        // Verify that the target node has been successfully replaced
+        assertEquals(previousNode, startingNode.getPreviousNodes().singleResult());
+        assertEquals(succeedingNode, endingNode.getSucceedingNodes().singleResult());
+        assertEquals(startingNodeId, startingNode.getId());
+        assertEquals(endingNodeId, endingNode.getId());
+        assertEquals(3, modelInstance1.getModelElementsByType(Task.class).size());
+
+        Bpmnt.validateModel(modelInstance1);
+    }
+
+    public void testReplaceFragmentWithNode() {
+        System.out.println("Testing replace (fragment for node)");
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
+        FlowNode replacedTask1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode replacedTask2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        FlowNode previousNode = replacedTask1.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = replacedTask2.getSucceedingNodes().singleResult();
+
+        modelInstance1.replace(replacedTask1.getId(), replacedTask2.getId(), replacingTask);
+
+        FlowNode newTask = modelInstance1.getModelElementById(replacingTask.getId());
+
+        // Verify that the target node has been successfully replaced
+        assertEquals(previousNode, newTask.getPreviousNodes().singleResult());
+        assertEquals(succeedingNode, newTask.getSucceedingNodes().singleResult());
+        assertEquals(replacingTask.getId(), newTask.getId());
+        assertEquals(1, modelInstance1.getModelElementsByType(Task.class).size());
+
+        Bpmnt.validateModel(modelInstance1);
+    }
+
+    public void testReplaceFragmentWithFragment() {
+        System.out.println("Testing replace (fragment for fragment)");
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+
+        String replacingTaskId1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2).getId();
+        String replacingTaskId2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2).getId();
+
+        FlowNode replacedTask1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode replacedTask2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        FlowNode previousNode = replacedTask1.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = replacedTask2.getSucceedingNodes().singleResult();
+
+        modelInstance1.replace(replacedTask1.getId(), replacedTask2.getId(), modelInstance2);
+
+        FlowNode newTask1 = modelInstance1.getModelElementById(replacingTaskId1);
+        FlowNode newTask2 = modelInstance1.getModelElementById(replacingTaskId2);
+
+        // Verify that the target node has been successfully replaced
+        assertEquals(previousNode, newTask1.getPreviousNodes().singleResult());
+        assertEquals(succeedingNode, newTask2.getSucceedingNodes().singleResult());
+        assertEquals(replacingTaskId1, newTask1.getId());
+        assertEquals(replacingTaskId2, newTask2.getId());
+        assertEquals(2, modelInstance1.getModelElementsByType(Task.class).size());
+        assertEquals(3, modelInstance1.getModelElementsByType(SequenceFlow.class).size());
+
+        Bpmnt.validateModel(modelInstance1);
+    }
 
     public void testMoveSingleNode() {
         System.out.println("Testing move (single node)");
