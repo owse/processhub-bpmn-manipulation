@@ -480,66 +480,81 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
                                         "Argument targetEndingNode must not be an end event");
 
         // TODO: FINISH (targetStartingNode can't be converging gateway & targetEndingNode can't be diverging gateway)
+        // This validation should be done in validateFragment
 
-//        FlowNode previousNode = targetStartingNode.getPreviousNodes().singleResult();
-//        FlowNode succeedingNode = targetEndingNode.getSucceedingNodes().singleResult();
-//
-//        // Only newPositionAfterOf set
-//        if (newPositionBeforeOf == null) {
-//            BpmnHelper.checkInvalidArgument(newPositionAfterOf instanceof EndEvent,
-//                    "Argument newPositionAfterOf must not be an end event if newPositionBeforeOf not set");
-//
-//            if (newPositionAfterOf instanceof Gateway) {
-//                BpmnHelper.checkInvalidArgument(
-//                        BpmnHelper.isGatewayDivergent((Gateway) newPositionAfterOf),
-//                        "Argument newPositionAfterOf cannot be a divergent gateway if newPositionBeforeOf not set"
-//                );
-//            }
-//
-//            newPositionBeforeOf = newPositionAfterOf.getSucceedingNodes().singleResult();
-//        }
-//
-//        else if (newPositionAfterOf == null) {
-//
-//            BpmnHelper.checkInvalidArgument(newPositionBeforeOf instanceof StartEvent,
-//                    "Argument newPositionBeforeOf must not be a start event if newPositionAfterOf not set");
-//
-//            if (newPositionBeforeOf instanceof Gateway) {
-//                BpmnHelper.checkInvalidArgument(
-//                        BpmnHelper.isGatewayConvergent((Gateway) newPositionBeforeOf),
-//                        "Argument newPositionBeforeOf cannot be a convergent gateway if newPositionBeforeOf not set"
-//                );
-//            }
-//            newPositionAfterOf = newPositionBeforeOf.getPreviousNodes().singleResult();
-//        }
-//
-//        boolean nodesInSuccession = false;
-//
-//        for (SequenceFlow sf: newPositionAfterOf.getOutgoing()) {
-//            if (sf.getTarget().equals(newPositionBeforeOf)) {
-//                BpmnElementRemover.removeSequenceFlow(this, sf);
-//                nodesInSuccession = true;
-//                break;
-//            }
-//        }
-//
-//        if (!nodesInSuccession) {
-//            BpmnHelper.checkInvalidArgument(true, "newPositionAfterOf must be directly connected to newPositionBeforeOf");
-//        }
-//
-//        // Disconnect the target node
-//        BpmnElementRemover.isolateFlowNode(targetNode);
-//
-//        // Connect the previous node to the succeeding node at the old position
-//        previousNode.builder().connectTo(succeedingNode.getId());
-//
-//        // Place the target node in the new position
-//        newPositionAfterOf.builder().connectTo(targetNode.getId()).connectTo(newPositionBeforeOf.getId());
+        FlowNode previousNode = targetStartingNode.getPreviousNodes().singleResult();
+        FlowNode succeedingNode = targetEndingNode.getSucceedingNodes().singleResult();
+
+        // Only newPositionAfterOf set
+        if (newPositionBeforeOf == null) {
+            BpmnHelper.checkInvalidArgument(newPositionAfterOf instanceof EndEvent,
+                    "Argument newPositionAfterOf must not be an end event if newPositionBeforeOf not set");
+
+            if (newPositionAfterOf instanceof Gateway) {
+                BpmnHelper.checkInvalidArgument(
+                        BpmnHelper.isGatewayDivergent((Gateway) newPositionAfterOf),
+                        "Argument newPositionAfterOf cannot be a divergent gateway if newPositionBeforeOf not set"
+                );
+            }
+
+            newPositionBeforeOf = newPositionAfterOf.getSucceedingNodes().singleResult();
+        }
+
+        else if (newPositionAfterOf == null) {
+
+            BpmnHelper.checkInvalidArgument(newPositionBeforeOf instanceof StartEvent,
+                    "Argument newPositionBeforeOf must not be a start event if newPositionAfterOf not set");
+
+            if (newPositionBeforeOf instanceof Gateway) {
+                BpmnHelper.checkInvalidArgument(
+                        BpmnHelper.isGatewayConvergent((Gateway) newPositionBeforeOf),
+                        "Argument newPositionBeforeOf cannot be a convergent gateway if newPositionBeforeOf not set"
+                );
+            }
+            newPositionAfterOf = newPositionBeforeOf.getPreviousNodes().singleResult();
+        }
+
+        boolean nodesInSuccession = false;
+
+        for (SequenceFlow sf: newPositionAfterOf.getOutgoing()) {
+            if (sf.getTarget().equals(newPositionBeforeOf)) {
+                BpmnElementRemover.removeSequenceFlow(this, sf);
+                nodesInSuccession = true;
+                break;
+            }
+        }
+
+        if (!nodesInSuccession) {
+            BpmnHelper.checkInvalidArgument(true, "newPositionAfterOf must be directly connected to newPositionBeforeOf");
+        }
+
+        // Disconnect the target fragment
+        BpmnElementRemover.removeAllSequenceFlows(this, targetStartingNode.getIncoming());
+        BpmnElementRemover.removeAllSequenceFlows(this, targetEndingNode.getOutgoing());
+
+        // Connect the previous node to the succeeding node at the old position
+        previousNode.builder().connectTo(succeedingNode.getId());
+
+        // Place the target node in the new position
+        newPositionAfterOf.builder().connectTo(targetStartingNode.getId());
+        targetEndingNode.builder().connectTo(newPositionBeforeOf.getId());
     }
 
-
     public void move(String targetStartingNodeId, String targetEndingNodeId,
-                     String newPositionAfterOfId, String newPositionBeforeOfId) {}
+                     String newPositionAfterOfId, String newPositionBeforeOfId) {
+
+        FlowNode targetStartingNode = getModelElementById(targetStartingNodeId);
+        FlowNode targetEndingNode = getModelElementById(targetEndingNodeId);
+        FlowNode newPositionAfterOf = getModelElementById(newPositionAfterOfId);
+        FlowNode newPositionBeforeOf = getModelElementById(newPositionBeforeOfId);
+
+        // Check null arguments
+        BpmnHelper.checkNotNull(targetStartingNode, "Argument targetStartingNode must not be null");
+        BpmnHelper.checkNotNull(targetEndingNode, "Argument targetEndingNode must not be null");
+
+        move(targetStartingNode, targetEndingNode, newPositionAfterOf, newPositionBeforeOf);
+
+    }
 
     public void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode) throws Exception {
         if (targetStartingNode == targetEndingNode) {

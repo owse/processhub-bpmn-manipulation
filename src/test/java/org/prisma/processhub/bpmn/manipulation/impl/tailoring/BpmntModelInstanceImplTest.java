@@ -18,7 +18,7 @@ import java.util.List;
 
 public class BpmntModelInstanceImplTest extends TestCase {
 
-    public void testSuppress() throws Exception {
+    public void testSuppress() {
         System.out.println("Testing suppress");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -38,13 +38,12 @@ public class BpmntModelInstanceImplTest extends TestCase {
             Bpmnt.validateModel(modelInstance);
         }
         catch (Exception e) {
-            System.out.println(" ............................ ok");
         }
 
 
     }
 
-    public void testRename() throws Exception {
+    public void testRename() {
         System.out.println("Testing rename");
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
@@ -60,10 +59,9 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(modelInstance);
-        System.out.println(" .............................. ok");
     }
 
-    public void testDeleteSingleNode() throws Exception {
+    public void testDeleteSingleNode() {
         System.out.println("Testing delete (single node)");
 
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
@@ -90,7 +88,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(modelInstance);
-        System.out.println(" ................ ok");
     }
 
     public void testDeleteMultipleNodes() {
@@ -126,7 +123,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(modelInstance);
-        System.out.println(" ............. ok");
 
     }
 
@@ -214,23 +210,24 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
-//    public void testMoveFragment() {
-//        System.out.println("Testing move (fragment)");
-//
-//        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
-//
-//        StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
-//        FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
-//        FlowNode target = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance);
-//
-//        // Switching the first task with the second task
-//        modelInstance.move(target.getId(), afterOf.getId(), beforeOf.getId());
-//
-//        // Verifies if the tasks were successfully switched
-//        assertEquals(target, afterOf.getSucceedingNodes().singleResult());
-//        assertEquals(target, beforeOf.getPreviousNodes().singleResult());
-//        assertEquals(beforeOf, BpmnElementSearcher.findEndEvent(modelInstance).getPreviousNodes().singleResult());
-//    }
+    public void testMoveFragment() {
+        System.out.println("Testing move (fragment)");
+
+        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+
+        StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
+        FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
+        FlowNode targetStartingNode = beforeOf.getSucceedingNodes().singleResult();
+        FlowNode targetEndingNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance).getPreviousNodes().singleResult();
+
+        // Moving the parallel fragment to the start of the process
+        modelInstance.move(targetStartingNode.getId(), targetEndingNode.getId(), afterOf.getId(), beforeOf.getId());
+
+        // Verifies if the fragment was successfully inserted in the new position
+        assertEquals(targetStartingNode, afterOf.getSucceedingNodes().singleResult());
+        assertEquals(targetEndingNode, beforeOf.getPreviousNodes().singleResult());
+        assertEquals(beforeOf, BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance).getPreviousNodes().singleResult());
+    }
 
     public void testParallelize() {
         System.out.print("Testing parallelize");
@@ -261,8 +258,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(divergentGateway, endingNode.getPreviousNodes().singleResult());
         assertEquals(convergentGateway, startingNode.getSucceedingNodes().singleResult());
         assertEquals(convergentGateway, endingNode.getSucceedingNodes().singleResult());
-
-        System.out.println(" ......................... ok");
 
     }
 
@@ -307,8 +302,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(sourceEndEvent.getId(), subProcessEndEvent.getId());
 
         Bpmnt.validateModel(modelInstance1);
-
-        System.out.println(" ............................... ok");
     }
 
     public void testInsertSingleNodeInSeries() {
@@ -385,8 +378,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(beforeOf3, insertedTask3.getSucceedingNodes().singleResult());
 
         Bpmnt.validateModel(modelInstance5);
-
-        System.out.println(" ...... ok");
     }
 
     public void testInsertSingleNodeInParallel() {
@@ -434,8 +425,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(convergingGateway, insertedTask.getSucceedingNodes().singleResult());
 
         Bpmnt.validateModel(modelInstance1);
-
-        System.out.println(" .... ok");
     }
 
     public void testInsertFragmentInSeries() {
@@ -512,8 +501,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(beforeOf3, lastNode6.getSucceedingNodes().singleResult());
 
         Bpmnt.validateModel(modelInstance5);
-
-        System.out.println(" ......... ok");
     }
 
     public void testInsertFragmentInParallel() {
@@ -561,9 +548,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(convergingGateway, lastNode2.getSucceedingNodes().singleResult());
 
         Bpmnt.validateModel(modelInstance1);
-
-        System.out.println(" ....... ok");
-    }
+   }
 
     public void testConditionalInsertSingleNode() {
         System.out.println("Testing conditional insert (single node)");
@@ -631,8 +616,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(condition2, insertedTask2.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
         Bpmnt.validateModel(modelInstance3);
-
-        System.out.println(" .... ok");
     }
 
     public void testConditionalInsertFragment() {
@@ -703,9 +686,6 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(condition2, firstInsertedNode.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
         Bpmnt.validateModel(modelInstance3);
-
-
-        System.out.println(" ....... ok");
     }
 
 

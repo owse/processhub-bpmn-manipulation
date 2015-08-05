@@ -64,6 +64,12 @@ public final class BpmnFragmentHandler {
         }
     }
 
+    // TODO: CHANGE LOGIC
+    // First gateway found that is not mixed must be divergent
+    // Last gateway found that is not mixed must be convergent, if a divergent gateway exists
+    // All nodes succeeding the first gateway must be part of the input flowNodes
+
+
     // Verifies if a process fragment is valid
     public static boolean validateProcessFragment(Collection<FlowNode> flowNodes) {
         Collection<Gateway> gateways = new ArrayList<Gateway>();
