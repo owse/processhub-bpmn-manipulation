@@ -4,6 +4,7 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
 import java.util.Collection;
 
@@ -87,7 +88,9 @@ public final class BpmnElementRemover {
         Collection<SequenceFlow> incomingFlows = flowNode.getIncoming();
         Collection<SequenceFlow> outgoingFlows = flowNode.getOutgoing();
 
-        incomingFlows.clear();
-        outgoingFlows.clear();
+        BpmnModelInstance modelInstance = (BpmnModelInstance) flowNode.getModelInstance();
+
+        removeAllSequenceFlows(modelInstance, incomingFlows);
+        removeAllSequenceFlows(modelInstance, outgoingFlows);
     }
 }

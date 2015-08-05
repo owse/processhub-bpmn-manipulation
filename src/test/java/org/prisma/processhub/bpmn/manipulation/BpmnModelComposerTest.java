@@ -117,9 +117,6 @@ public class BpmnModelComposerTest
         BpmnModelInstance resultModel1 = bpmnModelComposer.joinModelsInParallel(modelInstance1, modelInstance2);
 
         // Gateways created
-        for (FlowNode node : modelInstance1.getModelElementsByType(FlowNode.class)) {
-            System.out.println(node);
-        }
         FlowNode gatewayAfterStart1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(resultModel1);
         FlowNode gatewayBeforeEnd1 = endEventFromModel1.getIncoming().iterator().next().getSource();
 

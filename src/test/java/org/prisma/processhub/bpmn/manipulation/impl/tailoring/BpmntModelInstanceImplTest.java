@@ -162,6 +162,76 @@ public class BpmntModelInstanceImplTest extends TestCase {
 //        return;
 //    }
 
+    public void testMoveSingleNode() {
+        System.out.println("Testing move (single node)");
+
+        // First try: both position arguments set
+        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+
+        StartEvent afterOf1 = BpmnElementSearcher.findStartEvent(modelInstance1);
+        FlowNode beforeOf1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode target1 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        // Switching the first task with the second task
+        modelInstance1.move(target1.getId(), afterOf1.getId(), beforeOf1.getId());
+
+        // Verifies if the tasks were successfully switched
+        assertEquals(target1, afterOf1.getSucceedingNodes().singleResult());
+        assertEquals(target1, beforeOf1.getPreviousNodes().singleResult());
+        assertEquals(beforeOf1, BpmnElementSearcher.findEndEvent(modelInstance1).getPreviousNodes().singleResult());
+
+
+        // Second try: afterOf position set
+        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+
+        StartEvent afterOf2 = BpmnElementSearcher.findStartEvent(modelInstance2);
+        FlowNode beforeOf2 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2);
+        FlowNode target2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2);
+
+        // Switching the first task with the second task
+        modelInstance2.move(target2.getId(), afterOf2.getId(), null);
+
+        // Verifies if the tasks were successfully switched
+        assertEquals(target2, afterOf2.getSucceedingNodes().singleResult());
+        assertEquals(target2, beforeOf2.getPreviousNodes().singleResult());
+        assertEquals(beforeOf2, BpmnElementSearcher.findEndEvent(modelInstance2).getPreviousNodes().singleResult());
+
+
+        // Third try: beforeOf position set
+        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+
+        StartEvent afterOf3 = BpmnElementSearcher.findStartEvent(modelInstance3);
+        FlowNode beforeOf3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance3);
+        FlowNode target3 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance3);
+
+        // Switching the first task with the second task
+        modelInstance3.move(target3.getId(), afterOf3.getId(), beforeOf3.getId());
+
+        // Verifies if the tasks were successfully switched
+        assertEquals(target3, afterOf3.getSucceedingNodes().singleResult());
+        assertEquals(target3, beforeOf3.getPreviousNodes().singleResult());
+        assertEquals(beforeOf3, BpmnElementSearcher.findEndEvent(modelInstance3).getPreviousNodes().singleResult());
+
+    }
+
+//    public void testMoveFragment() {
+//        System.out.println("Testing move (fragment)");
+//
+//        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+//
+//        StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
+//        FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
+//        FlowNode target = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance);
+//
+//        // Switching the first task with the second task
+//        modelInstance.move(target.getId(), afterOf.getId(), beforeOf.getId());
+//
+//        // Verifies if the tasks were successfully switched
+//        assertEquals(target, afterOf.getSucceedingNodes().singleResult());
+//        assertEquals(target, beforeOf.getPreviousNodes().singleResult());
+//        assertEquals(beforeOf, BpmnElementSearcher.findEndEvent(modelInstance).getPreviousNodes().singleResult());
+//    }
+
     public void testParallelize() {
         System.out.print("Testing parallelize");
 

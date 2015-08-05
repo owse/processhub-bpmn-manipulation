@@ -43,8 +43,11 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void replace(FlowNode startingNode, FlowNode endingNode, BpmnModelInstance replacingFragment);
     void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment);
 
-    void move(FlowNode targetNode, FlowNode beforeNode, FlowNode afterNode);
-    void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode beforeNode, FlowNode afterNode);
+    void move(FlowNode targetNode, FlowNode newPositionAfterOf, FlowNode newPositionBeforeOf);
+    void move(String targetNodeId, String newPositionAfterOfId, String newPositionBeforeOfId);
+
+    void move(FlowNode targetStartingNode, FlowNode targetEndingNode, FlowNode newPositionAfterOf, FlowNode newPositionBeforeOf);
+    void move(String targetStartingNodeId, String targetEndingNodeId, String newPositionAfterOfId, String newPositionBeforeOfId);
 
     void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode) throws Exception;
     void parallelize(String targetStartingNodeId, String targetEndingNodeId) throws Exception;
