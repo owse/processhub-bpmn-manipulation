@@ -1,48 +1,181 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
-import junit.framework.TestCase;
-import org.camunda.bpm.model.bpmn.Bpmn;
-import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
-import org.camunda.bpm.model.bpmn.instance.Process;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.BlockJUnit4ClassRunner;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
+import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
-public class BpmntModelInstanceImplTest extends TestCase {
+import static org.junit.Assert.*;
 
-    public void testSuppress() {
-        System.out.println("Testing suppress");
+public class BpmntModelInstanceImplTest {
 
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
+    private BpmntModelInstance simpleModel;
+    private BpmntModelInstance simpleModel2;
+    private BpmntModelInstance parallelModel;
+    private BpmntModelInstance parallelModel2;
+    private BpmntModelInstance subprocessModel;
+    private BpmntModelInstance fragmentModel;
+
+    // Load diagrams before each test
+    @Before
+    public void loadDiagrams() {
+        simpleModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        simpleModel2 = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        parallelModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
+        parallelModel2 = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+        subprocessModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
+        fragmentModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
+    }
+
+    // Tests naming convention: methodName_StateUnderTest_ExpectedBehavior
+
+    // Test cases for the add method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
+    public void add_ElementFromSameModel_ExceptionThrown() {
+        // Add element from same model
+        FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(simpleModel);
+        exception.expect(IllegalArgumentException.class);
+        simpleModel.add(element);
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(simpleModel);
+    }
+
+    @Test
+    public void add_ParentFromOtherModel_ExceptionThrown() {
+        // Add element from this model with parent from another
+        FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(simpleModel);
+        FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
+        exception.expect(ElementNotFoundException.class);
+        simpleModel.add(foreignElement.getParentElement(), element);
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(simpleModel);
+    }
+
+    @Test
+    public void add_ElementFromOtherModel_ElementAdded() {
+        // Add element from another model
+        FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
+        simpleModel.add(foreignElement);
+
+        // Verify new element in model has same properties
+        FlowElement newElement = simpleModel.getModelElementById(foreignElement.getId());
+        assertEquals(newElement.getId(), foreignElement.getId());
+        assertEquals(newElement.getName(), foreignElement.getName());
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(simpleModel);
+    }
+
+    @Test
+    public void add_CreatedElement_ElementAdded() {
+        // Add newly created element
+        UserTask newTask = parallelModel.newInstance(UserTask.class);
+        newTask.setId("my_new_id");
+        newTask.setName("new_name");
+        simpleModel.add(newTask);
+
+        // Verify new element has been created in model
+        FlowElement newElement = simpleModel.getModelElementById(newTask.getId());
+        assertEquals(newElement.getId(), newTask.getId());
+        assertEquals(newElement.getName(), newTask.getName());
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(simpleModel);
+    }
+
+    @Test
+    public void add_SameElementTwice_ExceptionThrown() {
+        // Add foreign element
+        FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
+        simpleModel.add(foreignElement);
+
+        // Verify element was added with same properties
+        FlowElement newElement = simpleModel.getModelElementById(foreignElement.getId());
+        assertEquals(newElement.getId(), foreignElement.getId());
+        assertEquals(newElement.getName(), foreignElement.getName());
+
+        // Add with different id
+        String oldId = foreignElement.getId();
+        simpleModel.setUniqueId(foreignElement);
+        simpleModel.add(foreignElement);
+
+        // Verify element was added with same properties
+        newElement = simpleModel.getModelElementById(foreignElement.getId());
+        assertEquals(newElement.getId(), foreignElement.getId());
+        assertEquals(newElement.getName(), foreignElement.getName());
+        assertNotEquals(oldId, newElement.getId());
+
+        // Add again without changing id
+        exception.expect(IllegalArgumentException.class);
+        simpleModel.add(foreignElement);
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(simpleModel);
+    }
+
+
+    // Test cases for the suppress method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
+    public void suppress_ElementFromModel_ElementRemoved() {
         // Get the first flow element
-        FlowElement flowElementToRemove = modelInstance.getModelElementsByType(FlowElement.class).iterator().next();
+        FlowElement flowElementToRemove = simpleModel.getModelElementsByType(FlowElement.class).iterator().next();
         String flowElementToRemoveId = flowElementToRemove.getId();
 
         // Remove the first flow element
-        modelInstance.suppress(flowElementToRemoveId);
+        simpleModel.suppress(flowElementToRemoveId);
 
         // Verify if the flow element has been removed
-        assertEquals(modelInstance.getModelElementById(flowElementToRemoveId), null);
-
-        // Verify model consistency with Camunda API
-        try {
-            Bpmnt.validateModel(modelInstance);
-        }
-        catch (Exception e) {
-        }
-
+        assertEquals(simpleModel.getModelElementById(flowElementToRemoveId), null);
 
     }
 
+    @Test
+    public void suppress_ElementFromOtherModel_ExceptionThrown() {
+        // Get first element from other model
+        FlowElement foreignElement = parallelModel.getModelElementsByType(FlowElement.class).iterator().next();
+
+        exception.expect(ElementNotFoundException.class);
+        simpleModel2.suppress(foreignElement);
+    }
+
+    @Test
+    public void suppress_ElementFromModelTwice_ExceptionThrown() {
+        // Get the first flow element
+        FlowElement flowElementToRemove = simpleModel.getModelElementsByType(FlowElement.class).iterator().next();
+        String flowElementToRemoveId = flowElementToRemove.getId();
+
+        // Remove element
+        simpleModel.suppress(flowElementToRemoveId);
+        assertEquals(simpleModel.getModelElementById(flowElementToRemoveId), null);
+
+        // Remove twice
+        exception.expect(ElementNotFoundException.class);
+        simpleModel.suppress(flowElementToRemove);
+    }
+
+
+    // Test cases for the rename method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
     public void testRename() {
         System.out.println("Testing rename");
         BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -61,6 +194,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance);
     }
 
+    @Test
     public void testDeleteSingleNode() {
         System.out.println("Testing delete (single node)");
 
@@ -90,6 +224,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance);
     }
 
+    @Test
     public void testDeleteMultipleNodes() {
         System.out.println("Testing delete (multiple nodes)");
 
@@ -158,6 +293,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
 //        return;
 //    }
 
+    @Test
     public void testMoveSingleNode() {
         System.out.println("Testing move (single node)");
 
@@ -210,6 +346,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
+    @Test
     public void testMoveFragment() {
         System.out.println("Testing move (fragment)");
 
@@ -229,6 +366,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         assertEquals(beforeOf, BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance).getPreviousNodes().singleResult());
     }
 
+    @Test
     public void testParallelize() {
         System.out.print("Testing parallelize");
 
@@ -261,6 +399,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
 
     }
 
+    @Test
     public void testSplit() {
         System.out.println("Testing split");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -304,6 +443,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance1);
     }
 
+    @Test
     public void testInsertSingleNodeInSeries() {
         System.out.println("Testing insert in series (single node)");
 
@@ -380,6 +520,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance5);
     }
 
+    @Test
     public void testInsertSingleNodeInParallel() {
         System.out.println("Testing insert in parallel (single node)");
 
@@ -427,6 +568,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance1);
     }
 
+    @Test
     public void testInsertFragmentInSeries() {
         System.out.println("Testing insert in series (fragment)");
 
@@ -503,6 +645,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance5);
     }
 
+    @Test
     public void testInsertFragmentInParallel() {
         System.out.println("Testing insert in parallel (fragment)");
 
@@ -550,6 +693,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance1);
    }
 
+    @Test
     public void testConditionalInsertSingleNode() {
         System.out.println("Testing conditional insert (single node)");
 
@@ -618,6 +762,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance3);
     }
 
+    @Test
     public void testConditionalInsertFragment() {
         System.out.println("Testing conditional insert (fragment)");
 
@@ -688,6 +833,7 @@ public class BpmntModelInstanceImplTest extends TestCase {
         Bpmnt.validateModel(modelInstance3);
     }
 
+    @Test
     public void testFragmentValidation() {
         System.out.println("Testing fragment validation");
 

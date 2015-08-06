@@ -3,24 +3,28 @@ package org.prisma.processhub.bpmn.manipulation.tailoring;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
+
+import java.util.Collection;
 
 //import java.util.List;
 
 // Interface that extends the Camunda API with tailoring operations
 public interface BpmntModelInstance extends BpmnModelInstance {
 
+    // Useful operations that extend BpmnModelInstance features
+    boolean contains (FlowElement element);
+
+    String setUniqueId(FlowElement element);
+    void generateUniqueIds();
+
     // Low-level operations
-    void suppress (FlowElement targetElement);
+    <T extends FlowElement, E extends ModelElementInstance> T add(E parentElement, T element);
+    <T extends FlowElement> T add(T element);
 
-    void suppress (String targetElementId);
-
-    // Due to Camunda API's fluent builder API, makes no sense to implement it
-    //void contribute (FlowElement targetElement);
-
-    // Not in use
-    //void extend (BpmnModelInstance modelInstance);
-    //void modify (FlowElement targetElement, List<String> properties);
+    void suppress (FlowElement element);
+    void suppress (String elementId);
 
     // High-level operations
     void rename(String targetElementId, String newName);

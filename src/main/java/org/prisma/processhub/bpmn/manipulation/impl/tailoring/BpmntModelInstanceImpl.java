@@ -7,12 +7,14 @@ import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 
 public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements BpmntModelInstance {
 
@@ -21,23 +23,90 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         super(model, modelBuilder, document);
     }
 
+    // Useful operations that extend BpmnModelInstance features
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    // Verify if an element is contained in this BpmnModelInstance
+    public boolean contains(FlowElement element) {
+        if (getModelElementById(element.getId()) == null) {
+            return false;
+        }
+        return true;
+    }
+
+    // Set a generated unique id to a single element of the model and return it
+    public String setUniqueId(FlowElement element) {
+        // Generate unique prefix
+        String uniquePrefix = "fe-" + (new Date()).getTime() + "-";
+        return addUniquePrefix(element, uniquePrefix);
+    }
+
+    // Generate unique ids to all elements of the model
+    public void generateUniqueIds() {
+        String uniquePrefix = "fe-" + (new Date()).getTime() + "-";
+        // Set new id for all flow elements in models
+        for(FlowElement element: getModelElementsByType(FlowElement.class)) {
+            addUniquePrefix(element, uniquePrefix);
+        }
+    }
+
+    // Add a generated prefix to an element id
+    private String addUniquePrefix(FlowElement element, String uniquePrefix) {
+        // Verify if id already contains a generated prefix and substitute just the generated number
+        if (element.getId().startsWith("fe-")) {
+            String idWithoutPrefix = element.getId().substring(element.getId().indexOf('-', 3) + 1);
+            element.setId(uniquePrefix + idWithoutPrefix);
+        }
+        // Just prepend the prefix
+        else {
+            element.setId(uniquePrefix + element.getId());
+        }
+        return element.getId();
+    }
+
 
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    // Remove flow element leaving the rest of the model untouched
-    public void suppress (FlowElement targetElement) {
+    // Add a new single process element to the given parent element
+    public <T extends FlowElement, E extends ModelElementInstance> T add(E parentElement, T element) {
+        // Verify that parent element is part of this model
+        BpmnHelper.checkElementPresent(this.equals(parentElement.getModelInstance()),
+                                       "parentElement is not part of this BpmntModelInstance");
 
-        BpmnModelElementInstance parentElement = (BpmnModelElementInstance) targetElement.getParentElement();
-        parentElement.removeChildElement(targetElement);
+        // Verify that element id doesn't conflict with another one in the model
+        if (getModelElementById(element.getId()) != null) {
+            throw new IllegalArgumentException("There is another element with id \'" + element.getId() + "\' in this BpmntModelInstance");
+        }
+
+        // Create new FlowElement in model with same properties as element parameter
+        T newElement = (T) newInstance(element.getElementType());
+        newElement.setId(element.getId());
+        newElement.setName(element.getName());
+        parentElement.addChildElement(newElement);
+        return newElement;
+    }
+
+    // Add a new single element to the first process in this model as parent
+    public <T extends FlowElement> T add(T element) {
+        return add(BpmnElementSearcher.findFirstProcess(this), element);
+    }
+
+
+        // Remove flow element leaving the rest of the model untouched
+    public void suppress (FlowElement element) {
+        // Verify if element is part of this model instance
+        BpmnHelper.checkElementPresent(contains(element), "FlowElement with id \'" + element.getId() + "\' is not part of this BpmntModelInstance");
+        BpmnModelElementInstance parentElement = (BpmnModelElementInstance) element.getParentElement();
+        parentElement.removeChildElement(element);
         return;
     }
 
-    public void suppress (String targetElementId) {
-        FlowElement targetElement = getModelElementById(targetElementId);
-        if (targetElement == null) {
-            throw new ElementNotFoundException("Flow Element with id \'" + targetElementId +  "\' not found");
-        }
+    // Remove flow element by id
+    public void suppress (String elementId) {
+        FlowElement targetElement = getModelElementById(elementId);
+        // If element not found throw exception
+        BpmnHelper.checkElementPresent(targetElement != null, "Flow Element with id \'" + elementId +  "\' not found");
         suppress(targetElement);
         return;
     }
