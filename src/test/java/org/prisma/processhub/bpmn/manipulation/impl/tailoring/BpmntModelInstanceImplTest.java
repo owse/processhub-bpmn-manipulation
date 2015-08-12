@@ -1,5 +1,6 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.junit.Before;
 import org.junit.Rule;
@@ -9,6 +10,7 @@ import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
 import java.util.Collection;
 
@@ -210,7 +212,7 @@ public class BpmntModelInstanceImplTest {
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     @Test
-    public void deleteSingleNode() {
+    public void delete_SingleElement_ElementRemoved() {
         // Load data
         FlowNode flowNodeToDelete = parallelModel.getModelElementsByType(Task.class).iterator().next();
         String flowNodeToDeleteId = flowNodeToDelete.getId();
@@ -247,6 +249,11 @@ public class BpmntModelInstanceImplTest {
         FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(parallelModel2);
         int initialNumberFlowNodes = parallelModel2.getModelElementsByType(FlowNode.class).size();
 
+
+        // Make sure the fragment is valid
+        Collection<FlowNode> fragment = BpmnFragmentHandler.mapProcessFragment(splitGateway, joinGateway);
+        BpmnFragmentHandler.validateDeleteProcessFragment(fragment);
+
         // Deleting the parallel fragment
         parallelModel2.delete(splitGateway, joinGateway);
 
@@ -259,7 +266,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(lastNode, firstNode.getSucceedingNodes().singleResult());
 
         // Checks if the number of remaining flow nodes is correct
-        assertEquals(initialNumberFlowNodes - 4, parallelModel2.getModelElementsByType(FlowNode.class).size());
+        assertEquals(initialNumberFlowNodes - fragment.size(), parallelModel2.getModelElementsByType(FlowNode.class).size());
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(parallelModel2);
