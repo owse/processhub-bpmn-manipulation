@@ -15,22 +15,14 @@ public final class BpmnElementRemover {
 
     // Returns a BPMN model with the desired sequence flow removed
     public static void removeSequenceFlow(BpmnModelInstance modelInstance, SequenceFlow sequenceFlow) {
-
         // Check for null arguments
         BpmnHelper.checkNotNull(modelInstance, "Argument modelInstance must not be null");
         BpmnHelper.checkNotNull(sequenceFlow, "Argument sequenceFlow must not be null");
 
-        // Get first process in model instance
-        Process process = findFirstProcess(modelInstance);
-
-        // Get all sequence flows in process
-        Collection<FlowElement> flowElements = process.getFlowElements();
-        if (flowElements.isEmpty()) {
-            throw new ElementNotFoundException("No FlowElements found in Process");
-        }
-
-        flowElements.remove(sequenceFlow);
-        return;
+        // Check if sequence flow is contained in model instance
+        BpmnHelper.checkElementPresent(modelInstance.getModelElementById(sequenceFlow.getId()) != null,
+                                      "SequenceFlow with id \'" + sequenceFlow.getId() + "\' not part of the given BpmnModelInstance");
+        sequenceFlow.getParentElement().removeChildElement(sequenceFlow);
     }
 
     // Returns a BPMN model with the desired list of sequence flows removed

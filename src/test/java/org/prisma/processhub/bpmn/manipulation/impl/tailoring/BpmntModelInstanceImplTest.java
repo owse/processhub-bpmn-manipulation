@@ -5,8 +5,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
@@ -41,37 +39,37 @@ public class BpmntModelInstanceImplTest {
 
     // Tests naming convention: methodName_StateUnderTest_ExpectedBehavior
 
-    // Test cases for the add method
+    // Test cases for the 'contribute' method
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     @Test
-    public void add_ElementFromSameModel_ExceptionThrown() {
+    public void contribute_ElementFromSameModel_ExceptionThrown() {
         // Add element from same model
         FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(simpleModel);
         exception.expect(IllegalArgumentException.class);
-        simpleModel.add(element);
+        simpleModel.contribute(element);
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(simpleModel);
     }
 
     @Test
-    public void add_ParentFromOtherModel_ExceptionThrown() {
+    public void contribute_ParentFromOtherModel_ExceptionThrown() {
         // Add element from this model with parent from another
         FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(simpleModel);
         FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
         exception.expect(ElementNotFoundException.class);
-        simpleModel.add(foreignElement.getParentElement(), element);
+        simpleModel.contribute(foreignElement.getParentElement(), element);
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(simpleModel);
     }
 
     @Test
-    public void add_ElementFromOtherModel_ElementAdded() {
+    public void contribute_ElementFromOtherModel_ElementAdded() {
         // Add element from another model
         FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
-        simpleModel.add(foreignElement);
+        simpleModel.contribute(foreignElement);
 
         // Verify new element in model has same properties
         FlowElement newElement = simpleModel.getModelElementById(foreignElement.getId());
@@ -83,12 +81,12 @@ public class BpmntModelInstanceImplTest {
     }
 
     @Test
-    public void add_CreatedElement_ElementAdded() {
+    public void contribute_CreatedElement_ElementAdded() {
         // Add newly created element
         UserTask newTask = parallelModel.newInstance(UserTask.class);
         newTask.setId("my_new_id");
         newTask.setName("new_name");
-        simpleModel.add(newTask);
+        simpleModel.contribute(newTask);
 
         // Verify new element has been created in model
         FlowElement newElement = simpleModel.getModelElementById(newTask.getId());
@@ -100,10 +98,10 @@ public class BpmntModelInstanceImplTest {
     }
 
     @Test
-    public void add_SameElementTwice_ExceptionThrown() {
+    public void contribute_SameElementTwice_ExceptionThrown() {
         // Add foreign element
         FlowElement foreignElement = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel);
-        simpleModel.add(foreignElement);
+        simpleModel.contribute(foreignElement);
 
         // Verify element was added with same properties
         FlowElement newElement = simpleModel.getModelElementById(foreignElement.getId());
@@ -113,7 +111,7 @@ public class BpmntModelInstanceImplTest {
         // Add with different id
         String oldId = foreignElement.getId();
         simpleModel.setUniqueId(foreignElement);
-        simpleModel.add(foreignElement);
+        simpleModel.contribute(foreignElement);
 
         // Verify element was added with same properties
         newElement = simpleModel.getModelElementById(foreignElement.getId());
@@ -123,14 +121,14 @@ public class BpmntModelInstanceImplTest {
 
         // Add again without changing id
         exception.expect(IllegalArgumentException.class);
-        simpleModel.add(foreignElement);
+        simpleModel.contribute(foreignElement);
 
         // Verify model consistency with Camunda API
         Bpmnt.validateModel(simpleModel);
     }
 
 
-    // Test cases for the suppress method
+    // Test cases for the 'suppress' method
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     @Test
@@ -144,7 +142,6 @@ public class BpmntModelInstanceImplTest {
 
         // Verify if the flow element has been removed
         assertEquals(simpleModel.getModelElementById(flowElementToRemoveId), null);
-
     }
 
     @Test
@@ -172,44 +169,62 @@ public class BpmntModelInstanceImplTest {
     }
 
 
-    // Test cases for the rename method
+    // Test cases for the 'rename' method
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     @Test
-    public void testRename() {
-        System.out.println("Testing rename");
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-
+    public void rename_ElementFromModel_ElementRenamed() {
         // Select a flow node to rename
-        FlowNode flowNodeToRename = modelInstance.getModelElementsByType(FlowNode.class).iterator().next();
+        FlowNode flowNodeToRename = simpleModel.getModelElementsByType(FlowNode.class).iterator().next();
         String flowNodeToRenameId = flowNodeToRename.getId();
         String newName = "New Name";
 
-        modelInstance.rename(flowNodeToRenameId, newName);
-
         // Checks if the target node has been renamed correctly
-        assertEquals(newName, flowNodeToRename.getName());
+        simpleModel.rename(flowNodeToRename, newName);
+        FlowElement renamedElement = simpleModel.getModelElementById(flowNodeToRenameId);
+        assertEquals(newName, renamedElement.getName());
+
+        // Test the other signature by id
+        newName = "My other new name";
+        simpleModel.rename(flowNodeToRenameId, newName);
+        renamedElement = simpleModel.getModelElementById(flowNodeToRenameId);
+        assertEquals(newName, renamedElement.getName());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(modelInstance);
+        Bpmnt.validateModel(simpleModel);
     }
 
     @Test
-    public void testDeleteSingleNode() {
-        System.out.println("Testing delete (single node)");
+    public void rename_ElementFromOtherModel_ExceptionThrown() {
+        // Select a flow node to rename
+        FlowNode flowNodeToRename = simpleModel2.getModelElementsByType(FlowNode.class).iterator().next();
+        String newName = "New Name";
 
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
-        FlowNode flowNodeToDelete = modelInstance.getModelElementsByType(Task.class).iterator().next();
+        // Checks if the target node has been renamed correctly
+        exception.expect(ElementNotFoundException.class);
+        simpleModel.rename(flowNodeToRename, newName);
+    }
+
+
+    // Test cases for the 'delete' method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
+    public void deleteSingleNode() {
+        // Load data
+        FlowNode flowNodeToDelete = parallelModel.getModelElementsByType(Task.class).iterator().next();
         String flowNodeToDeleteId = flowNodeToDelete.getId();
-        int initialNumberFlowNodes = modelInstance.getModelElementsByType(FlowNode.class).size();
+        int initialNumberFlowNodes = parallelModel.getModelElementsByType(FlowNode.class).size();
 
         // Find start and end events
-        StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelInstance);
-        EndEvent endEvent = BpmnElementSearcher.findEndEvent(modelInstance);
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(parallelModel);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(parallelModel);
 
-        modelInstance.delete(flowNodeToDeleteId);
+        parallelModel.delete(flowNodeToDeleteId);
+        FlowNode remainingTask = parallelModel.getModelElementsByType(Task.class).iterator().next();
 
-        FlowNode remainingTask = modelInstance.getModelElementsByType(Task.class).iterator().next();
+        // Checks if the number of remaining flow nodes is correct
+        assertEquals(initialNumberFlowNodes - 3, parallelModel.getModelElementsByType(FlowNode.class).size());
 
         // Checks if the split parallel gateway has been removed and if the remaining task is connected to the start event
         assertEquals(startEvent, remainingTask.getPreviousNodes().singleResult());
@@ -217,50 +232,41 @@ public class BpmntModelInstanceImplTest {
         // Checks if the join parallel gateway has been removed and if the remaining task is connected to the end event
         assertEquals(endEvent, remainingTask.getSucceedingNodes().singleResult());
 
-        // Checks if the number of remaining flow nodes is correct
-        assertEquals(initialNumberFlowNodes - 3, modelInstance.getModelElementsByType(FlowNode.class).size());
-
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(modelInstance);
+        Bpmnt.validateModel(parallelModel);
     }
 
     @Test
-    public void testDeleteMultipleNodes() {
-        System.out.println("Testing delete (multiple nodes)");
-
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
-
-        ParallelGateway splitGateway = modelInstance.getModelElementById("ParallelGateway_1c6p3yf");
-        ParallelGateway joinGateway = modelInstance.getModelElementById("ParallelGateway_07aj32a");
-        Task parallelTaskA = modelInstance.getModelElementById("Task_1liqzit");
-        Task parallelTaskB = modelInstance.getModelElementById("Task_0dae65c");
-        FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
-        FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance);
-        int initialNumberFlowNodes = modelInstance.getModelElementsByType(FlowNode.class).size();
+    public void delete_ValidFragment_FragmentRemoved() {
+        // Loading data
+        ParallelGateway splitGateway = parallelModel2.getModelElementById("ParallelGateway_1c6p3yf");
+        ParallelGateway joinGateway = parallelModel2.getModelElementById("ParallelGateway_07aj32a");
+        Task parallelTaskA = parallelModel2.getModelElementById("Task_1liqzit");
+        Task parallelTaskB = parallelModel2.getModelElementById("Task_0dae65c");
+        FlowNode firstNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(parallelModel2);
+        FlowNode lastNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(parallelModel2);
+        int initialNumberFlowNodes = parallelModel2.getModelElementsByType(FlowNode.class).size();
 
         // Deleting the parallel fragment
-        try {
-            modelInstance.delete(splitGateway, joinGateway);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        parallelModel2.delete(splitGateway, joinGateway);
 
         // Verifies that every node in the selected fragment has been deleted
-        assert modelInstance.getModelElementsByType(ParallelGateway.class).isEmpty();
-        assertEquals(null, modelInstance.getModelElementById(parallelTaskA.getId()));
-        assertEquals(null, modelInstance.getModelElementById(parallelTaskB.getId()));
+        assert parallelModel2.getModelElementsByType(ParallelGateway.class).isEmpty();
+        assertEquals(null, parallelModel2.getModelElementById(parallelTaskA.getId()));
+        assertEquals(null, parallelModel2.getModelElementById(parallelTaskB.getId()));
 
         // Verifies that the first task is connected to the last task
         assertEquals(lastNode, firstNode.getSucceedingNodes().singleResult());
 
         // Checks if the number of remaining flow nodes is correct
-        assertEquals(initialNumberFlowNodes - 4, modelInstance.getModelElementsByType(FlowNode.class).size());
+        assertEquals(initialNumberFlowNodes - 4, parallelModel2.getModelElementsByType(FlowNode.class).size());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(modelInstance);
+        Bpmnt.validateModel(parallelModel2);
 
     }
 
+    @Test
     public void testReplaceNodeWithNode() {
         System.out.println("Testing replace (node for node)");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -285,6 +291,7 @@ public class BpmntModelInstanceImplTest {
 
     }
 
+    @Test
     public void testReplaceNodeWithFragment() {
         System.out.println("Testing replace (node for fragment)");
 
@@ -314,6 +321,7 @@ public class BpmntModelInstanceImplTest {
         Bpmnt.validateModel(modelInstance1);
     }
 
+    @Test
     public void testReplaceFragmentWithNode() {
         System.out.println("Testing replace (fragment for node)");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
@@ -339,6 +347,7 @@ public class BpmntModelInstanceImplTest {
         Bpmnt.validateModel(modelInstance1);
     }
 
+    @Test
     public void testReplaceFragmentWithFragment() {
         System.out.println("Testing replace (fragment for fragment)");
         BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));

@@ -28,14 +28,14 @@ public final class BpmnHelper {
     }
 
     public static boolean isGatewayDivergent(Gateway gateway) {
-        if (gateway.getSucceedingNodes().count() > 1) {
+        if (gateway.getOutgoing().size() > 1 && gateway.getIncoming().size() == 1) {
             return true;
         }
         return false;
     }
 
     public static boolean isGatewayConvergent(Gateway gateway) {
-        if (gateway.getPreviousNodes().count() > 1) {
+        if (gateway.getIncoming().size() > 1 && gateway.getOutgoing().size() == 1) {
             return true;
         }
         return false;

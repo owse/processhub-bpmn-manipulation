@@ -34,10 +34,6 @@ public final class BpmnFragmentHandler {
             mapProcessFragment(flowNodes, sf.getTarget(), endingNode);
         }
 
-        if (!validateProcessFragment(flowNodes)) {
-            throw new IllegalFragmentException("Invalid BPMN fragment");
-        }
-
         return flowNodes;
     }
 
@@ -45,8 +41,8 @@ public final class BpmnFragmentHandler {
     private static void mapProcessFragment(Collection<FlowNode> flowNodes, FlowNode currentNode, FlowNode endingNode) {
 
         // If node already created, return
-        for (FlowNode fn: flowNodes) {
-            if (fn.getId().equals(currentNode.getId())) {
+        for (FlowNode node: flowNodes) {
+            if (node.getId().equals(currentNode.getId())) {
                 return;
             }
         }
@@ -72,36 +68,50 @@ public final class BpmnFragmentHandler {
 
     // Verifies if a process fragment is valid
     // Assumes that there are no mixed (convergent and divergent) gateways
-    public static boolean validateProcessFragment(Collection<FlowNode> flowNodes) {
+    public static void validateDeleteProcessFragment(Collection<FlowNode> nodes) {
 
+        // Identify all gateways
         List<Gateway> gateways = new ArrayList<Gateway>();
-
-        for (FlowNode fn: flowNodes) {
-            if (fn instanceof Gateway) {
-                if (BpmnHelper.isGatewayDivergent((Gateway) fn) || BpmnHelper.isGatewayConvergent((Gateway) fn)) {
-                    gateways.add((Gateway) fn);
+        for (FlowNode node: nodes) {
+            if (node instanceof Gateway) {
+                Gateway gateway = (Gateway) node;
+                if (BpmnHelper.isGatewayDivergent(gateway) || BpmnHelper.isGatewayConvergent(gateway)) {
+                    gateways.add(gateway);
                 }
             }
         }
 
+        // Fragment is valid if there are no gateways
         if (gateways.size() == 0) {
-            return true;
+            return;
         }
 
+        // The first gateway can't be convergent (means there' a divergent gateway before the fragment)
         if (BpmnHelper.isGatewayConvergent(gateways.get(0))) {
-            return false;
+            throw new IllegalFragmentException("First gateway in fragment is convergent. The previous corresponding " +
+                                               "divergent gateway should be in the fragment to be deleted");
         }
 
+        // The last gateway can't be divergent (means there' a convergent gateway after the fragment)
         if (BpmnHelper.isGatewayDivergent(gateways.get(gateways.size() - 1))) {
-            return false;
+            throw new IllegalFragmentException("Last gateway in fragment is divergent. The succeeding corresponding " +
+                    "convergent gateway should be in the fragment to be deleted");
         }
-
-        Collection<FlowNode> succedingNodes = gateways.get(0).getSucceedingNodes().list();
-        Collection<FlowNode> previousNodes = gateways.get(gateways.size() - 1).getPreviousNodes().list();
 
         // All nodes immediately after the first divergent gateway and immediately before the last convergent gateway
         // must be part of the fragment
-        return flowNodes.containsAll(succedingNodes) && flowNodes.containsAll(previousNodes);
+        Collection<FlowNode> succeedingNodes = gateways.get(0).getSucceedingNodes().list();
+        Collection<FlowNode> previousNodes = gateways.get(gateways.size() - 1).getPreviousNodes().list();
+
+        if (!nodes.containsAll(succeedingNodes)) {
+            throw new IllegalFragmentException("All nodes immediately after the first divergent gateway " +
+                    "should be part of the fragment to be deleted");
+        }
+
+        if (!nodes.containsAll(previousNodes)) {
+            throw new IllegalFragmentException("All nodes immediately before the last convergent gateway " +
+                    "should be part of the fragment to be deleted");
+        }
 
     }
 

@@ -1,6 +1,8 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.Query;
 import org.camunda.bpm.model.bpmn.impl.BpmnModelInstanceImpl;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
@@ -8,6 +10,7 @@ import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.*;
@@ -64,12 +67,26 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         return element.getId();
     }
 
+    // Connect all nodes before the given node to the ones after it
+    public void connectAllPreviousToSucceedingNodes(FlowNode node) {
+        connectAllPreviousToSucceedingNodes(node, node);
+    }
+
+    // Connect all previous nodes of a given node, to all succeeding nodes of another given node
+    public void connectAllPreviousToSucceedingNodes(FlowNode previous, FlowNode succeeding) {
+        for (FlowNode previousNode: previous.getPreviousNodes().list()) {
+            for (FlowNode succeedingNode: succeeding.getSucceedingNodes().list()) {
+                previousNode.builder().connectTo(succeedingNode.getId());
+            }
+        }
+    }
+
 
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     // Add a new single process element to the given parent element
-    public <T extends FlowElement, E extends ModelElementInstance> T add(E parentElement, T element) {
+    public <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element) {
         // Verify that parent element is part of this model
         BpmnHelper.checkElementPresent(this.equals(parentElement.getModelInstance()),
                                        "parentElement is not part of this BpmntModelInstance");
@@ -88,142 +105,145 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     }
 
     // Add a new single element to the first process in this model as parent
-    public <T extends FlowElement> T add(T element) {
-        return add(BpmnElementSearcher.findFirstProcess(this), element);
+    public <T extends FlowElement> T contribute(T element) {
+        return contribute(BpmnElementSearcher.findFirstProcess(this), element);
     }
 
 
-        // Remove flow element leaving the rest of the model untouched
-    public void suppress (FlowElement element) {
+    // Remove flow element leaving the rest of the model untouched
+    public <T extends FlowElement> void suppress(T element) {
         // Verify if element is part of this model instance
         BpmnHelper.checkElementPresent(contains(element), "FlowElement with id \'" + element.getId() + "\' is not part of this BpmntModelInstance");
         BpmnModelElementInstance parentElement = (BpmnModelElementInstance) element.getParentElement();
         parentElement.removeChildElement(element);
-        return;
+    }
+
+    // Remove every element in collection
+    public <T extends FlowElement> void suppress(Collection<T> elements) {
+        for (FlowElement element : elements) {
+            suppress(element);
+        }
     }
 
     // Remove flow element by id
-    public void suppress (String elementId) {
+    public void suppress(String elementId) {
         FlowElement targetElement = getModelElementById(elementId);
         // If element not found throw exception
         BpmnHelper.checkElementPresent(targetElement != null, "Flow Element with id \'" + elementId +  "\' not found");
         suppress(targetElement);
-        return;
     }
+
 
     // High-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    // Rename element
-    public void rename(String targetElementId, String newName) {
-        FlowElement flowElementToRename = getModelElementById(targetElementId);
-        if (flowElementToRename == null) {
-            throw new ElementNotFoundException("Flow Element with id \'" + targetElementId + "\' not found");
-        }
-        flowElementToRename.setName(newName);
-        return;
+    public void rename(FlowElement element, String newName) {
+        BpmnHelper.checkElementPresent(contains(element),
+                "FlowElement with id \'" + element.getId() + "\' is not part of this BpmntModelInstance");
+        element.setName(newName);
     }
 
-    // Delete a node
-    public void delete(FlowNode targetNode){
+    // Rename element by id
+    public void rename(String elementId, String newName) {
+        FlowElement element = getModelElementById(elementId);
+        BpmnHelper.checkElementPresent(element != null, "Flow Element with id \'" + elementId + "\' not found");
+        element.setName(newName);
+    }
 
+
+    // Delete a node, all sequence flows connected to it and also obsolete gateways
+    public void delete(FlowNode node){
         // Gateways, start and end events are not allowed to be deleted
-        BpmnHelper.checkInvalidArgument(targetNode instanceof Gateway || targetNode instanceof StartEvent || targetNode instanceof EndEvent,
+        BpmnHelper.checkInvalidArgument(node instanceof Gateway || node instanceof StartEvent || node instanceof EndEvent,
                 "Argument FlowNode must not be a Gateway, StartEvent or EndEvent");
 
-        // Get all incoming and outgoing sequence flows from the node
-        Collection<SequenceFlow> incomingSequenceFlows = targetNode.getIncoming();
-        Collection<SequenceFlow> outgoingSequenceFlows = targetNode.getOutgoing();
-
-        Collection<FlowNode> beforeNodes = new ArrayList<FlowNode>();
-        Collection<FlowNode> afterNodes = new ArrayList<FlowNode>();
-        Collection<Gateway> gateways = new ArrayList<Gateway>();
-
-        // Get all nodes and gateways before the node
-        for (SequenceFlow sf: incomingSequenceFlows) {
-            FlowNode source = sf.getSource();
-            if (source instanceof Gateway) {
-                gateways.add((Gateway) source);
-            }
-            else {
-                beforeNodes.add(source);
-            }
-        }
-
-        // Get all nodes and gateways after the node
-        for (SequenceFlow sf: outgoingSequenceFlows) {
-            FlowNode destination = sf.getTarget();
-            if (destination instanceof Gateway) {
-                gateways.add((Gateway) destination);
-            }
-            else {
-                afterNodes.add(destination);
-            }
-        }
-
-        // Gateways should have at least 3 incoming or outgoing sequence flows
-        // Delete gateway if it has less than that discounting the sequence flow that
-        // will be removed when the node is deleted
-
-        // Should also check if there is at least one sequence flow after node deletion
-        Collection<Gateway> gatewaysToDelete = new ArrayList<Gateway>();
-        for (Gateway g: gateways) {
-            if (g.getIncoming().size() + g.getOutgoing().size() - 1 < 3) {
-                gatewaysToDelete.add(g);
-            }
-        }
+        fixGatewaysDelete(node.getPreviousNodes().list(), node.getSucceedingNodes().list());
 
         // Remove flow node and all sequence flows connected to it
-        BpmnElementRemover.removeFlowNode(this, targetNode.getId());
+        connectAllPreviousToSucceedingNodes(node);
+        suppress(node.getIncoming());
+        suppress(node.getOutgoing());
+        suppress(node);
 
-        for (Gateway g: gatewaysToDelete) {
-            FlowNode incomingNode = g.getIncoming().iterator().next().getSource();
-            FlowNode outgoingNode = g.getOutgoing().iterator().next().getTarget();
-            incomingNode.builder().connectTo(outgoingNode.getId());
-            BpmnElementRemover.removeFlowNode(this, g.getId());
-        }
-
-        // Connect nodes before the removed one to nodes after it
-        for (FlowNode beforeNode: beforeNodes) {
-            for (FlowNode afterNode: afterNodes) {
-                beforeNode.builder().connectTo(afterNode.getId());
-            }
-        }
-        return;
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(this);
     }
 
-    public void delete(String targetNodeId) {
-        FlowNode targetNode = getModelElementById(targetNodeId);
-        if (targetNode == null) {
-            throw new ElementNotFoundException("Flow Node with id \'" + targetNodeId +  "\' not found");
-        }
-        delete(targetNode);
-        return;
-    }
+    public void fixGatewaysDelete(Collection<FlowNode> previousNodes, Collection<FlowNode> succeedingNodes) {
+        Collection<FlowNode> gatewaysToDelete = new ArrayList<FlowNode>();
 
-    public void delete(FlowNode startingNode, FlowNode endingNode) {
-        Collection<FlowNode> flowNodesToDelete = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
-        if (startingNode instanceof StartEvent || endingNode instanceof EndEvent) {
-            return;
-        }
+        // Booleans to tell if node is between two gateways
+        // which is the only case where gateways should be deleted
+        boolean nodeBetweenGateways = false;
+        boolean gatewayBefore = false;
 
-        if (BpmnFragmentHandler.validateProcessFragment(flowNodesToDelete)) {
-            Collection<SequenceFlow> sequenceFlowsIncoming = startingNode.getIncoming();
-            Collection<SequenceFlow> sequenceFlowsOutgoing = endingNode.getOutgoing();
-
-            for (SequenceFlow sfi: sequenceFlowsIncoming) {
-                for (SequenceFlow sfo: sequenceFlowsOutgoing) {
-                    sfi.getSource().builder().connectTo(sfo.getTarget().getId());
+        // Get all nodes and gateways to be possibly deleted before the node
+        for (FlowNode source : previousNodes) {
+            // Identify gateways and check if they should be deleted
+            if (source instanceof Gateway) {
+                gatewayBefore = true;
+                Gateway gateway = (Gateway) source;
+                // Gateway before should be deleted if it's divergent and has 2 outgoing sequence flows
+                if (BpmnHelper.isGatewayDivergent(gateway) && gateway.getOutgoing().size() == 2) {
+                    gatewaysToDelete.add(gateway);
                 }
             }
-
-            for (FlowNode fn: flowNodesToDelete) {
-                BpmnElementRemover.removeFlowNode(this, fn.getId());
+        }
+        // Only check for succeeding gateways to be deleted if there's a previous gateway for that node
+        if (gatewayBefore) {
+            // Get all nodes and gateways to be deleted after the node
+            for (FlowNode destination : succeedingNodes) {
+                // Identify gateways and check if they should be deleted
+                if (destination instanceof Gateway) {
+                    nodeBetweenGateways = true;
+                    Gateway gateway = (Gateway) destination;
+                    // Gateway after should be deleted if it's convergent and has 2 incoming sequence flows
+                    if (BpmnHelper.isGatewayConvergent(gateway) && gateway.getIncoming().size() == 2) {
+                        gatewaysToDelete.add(gateway);
+                    }
+                }
             }
         }
+        // Delete obsolete gateways if node is between gateways
+        // and connect the element before with the element after it
+        if (nodeBetweenGateways) {
+            for (FlowNode gateway : gatewaysToDelete) {
+                connectAllPreviousToSucceedingNodes(gateway);
+                // Delete gateway
+                suppress(gateway.getIncoming());
+                suppress(gateway.getOutgoing());
+                suppress(gateway);
+                // Remove from previous and succeeding nodes list if its present
+                succeedingNodes.remove(gateway);
+                previousNodes.remove(gateway);
+            }
+        }
+    }
 
-        return;
 
+    // Delete element by id
+    public void delete(String nodeId) {
+        FlowNode node = getModelElementById(nodeId);
+        BpmnHelper.checkElementPresent(node != null, "Flow Node with id \'" + nodeId +  "\' not found");
+        delete(node);
+    }
+
+    // Delete range of elements from startingNode to endingNode
+    public void delete(FlowNode startingNode, FlowNode endingNode) {
+        Collection<FlowNode> nodesToDelete = BpmnFragmentHandler.mapProcessFragment(startingNode, endingNode);
+
+        // Make sure the fragment can be deleted
+        BpmnFragmentHandler.validateDeleteProcessFragment(nodesToDelete);
+
+        // Connect nodes before with nodes after fragment
+        connectAllPreviousToSucceedingNodes(startingNode, endingNode);
+
+        // Delete all nodes in the fragment
+        for (FlowNode node: nodesToDelete) {
+            suppress(node.getIncoming());
+            suppress(node.getOutgoing());
+            suppress(node);
+        }
     }
 
     public void delete(String startingNodeId, String endingNodeId) {

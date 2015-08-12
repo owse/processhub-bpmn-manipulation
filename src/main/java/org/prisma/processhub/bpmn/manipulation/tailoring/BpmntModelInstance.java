@@ -19,18 +19,24 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     String setUniqueId(FlowElement element);
     void generateUniqueIds();
 
-    // Low-level operations
-    <T extends FlowElement, E extends ModelElementInstance> T add(E parentElement, T element);
-    <T extends FlowElement> T add(T element);
+    void connectAllPreviousToSucceedingNodes(FlowNode previous, FlowNode succeeding);
+    void connectAllPreviousToSucceedingNodes(FlowNode node);
 
-    void suppress (FlowElement element);
+
+        // Low-level operations
+    <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element);
+    <T extends FlowElement> T contribute(T element);
+
+    <T extends FlowElement> void suppress (T element);
+    <T extends FlowElement> void suppress (Collection<T> elements);
     void suppress (String elementId);
 
     // High-level operations
-    void rename(String targetElementId, String newName);
+    void rename(String elementId, String newName);
+    void rename(FlowElement element, String newName);
 
-    void delete(FlowNode targetNode);
-    void delete(String targetNodeId);
+    void delete(FlowNode node);
+    void delete(String nodeId);
 
     void delete(FlowNode startingNode, FlowNode endingNode);
     void delete(String startingNodeId, String endingNodeId);
