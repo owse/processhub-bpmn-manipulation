@@ -21,6 +21,8 @@ import java.util.Date;
 
 public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements BpmntModelInstance {
 
+    private BpmnModelInstance bpmntLog;
+
     // Constructor
     public BpmntModelInstanceImpl(ModelImpl model, ModelBuilder modelBuilder, DomDocument document) {
         super(model, modelBuilder, document);
@@ -79,6 +81,15 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
                 previousNode.builder().connectTo(succeedingNode.getId());
             }
         }
+    }
+
+
+    public void setBpmntLog(BpmnModelInstance modelInstance) {
+        bpmntLog = modelInstance;
+    }
+
+    public BpmnModelInstance getBpmntLog() {
+        return bpmntLog;
     }
 
 
