@@ -1,6 +1,8 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelException;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.ProcessBuilder;
 import org.camunda.bpm.model.bpmn.impl.instance.*;
 import org.camunda.bpm.model.bpmn.impl.instance.ExtensionImpl;
@@ -28,6 +30,30 @@ public class Bpmnt {
     private BpmntParser bpmntParser = new BpmntParser();
     private final ModelBuilder bpmntModelBuilder = ModelBuilder.createInstance("BPMNt Model");
     private Model bpmntModel;
+
+    // Load a model and its BPMNt log from files
+    public static BpmntModelInstance readBpmntModelFromFiles (File modelFile, File bpmntLogFile) {
+        BpmntModelInstance modelInstance = readModelFromFile(modelFile);
+        modelInstance.setBpmntLog(Bpmn.readModelFromFile(bpmntLogFile));
+        return modelInstance;
+    }
+
+    // Load a model and its BPMNt log from streams
+    public static BpmntModelInstance readBpmntModelFromStreams (InputStream modelStream, InputStream bpmntLogStream) {
+        BpmntModelInstance modelInstance = readModelFromStream(modelStream);
+        modelInstance.setBpmntLog(Bpmn.readModelFromStream(bpmntLogStream));
+        return modelInstance;
+    }
+
+    // Write the BPMNt log to file
+    public static void writeBpmntLogToFile(File file, BpmntModelInstance modelInstance) {
+        Bpmn.writeModelToFile(file, modelInstance.getBpmntLog());
+    }
+
+    // Write the BPMNt log to stream
+    public static void writeBpmntLogToStream(OutputStream stream, BpmntModelInstance modelInstance) {
+        Bpmn.writeModelToStream(stream, modelInstance.getBpmntLog());
+    }
 
     public static BpmntModelInstance readModelFromFile(File file) {
         return INSTANCE.doReadModelFromFile(file);

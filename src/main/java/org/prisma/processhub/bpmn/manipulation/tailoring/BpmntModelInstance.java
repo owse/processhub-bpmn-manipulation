@@ -77,6 +77,9 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop);
     void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop);
 
+    void setBpmntLog(BpmnModelInstance modelInstance);
+    BpmnModelInstance getBpmntLog();
+
 //    void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
 //    void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
 //    void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
