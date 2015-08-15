@@ -8,6 +8,7 @@ import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
+import org.camunda.bpm.model.xml.impl.instance.ModelElementInstanceImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
@@ -131,6 +132,19 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         // If element not found throw exception
         BpmnHelper.checkElementPresent(targetElement != null, "Flow Element with id \'" + elementId +  "\' not found");
         suppress(targetElement);
+    }
+
+    // Modify a property of a flow element
+    public <T extends FlowElement> void modify(T element, String property, String value) {
+        element.setAttributeValue(property, value);
+    }
+
+    // Modify a property of a flow element with given id
+    public void modify(String elementId, String property, String value) {
+        FlowElement targetElement = getModelElementById(elementId);
+        // If element not found throw exception
+        BpmnHelper.checkElementPresent(targetElement != null, "Flow Element with id \'" + elementId +  "\' not found");
+        modify(targetElement, property, value);
     }
 
 

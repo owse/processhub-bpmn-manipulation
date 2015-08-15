@@ -2,6 +2,7 @@ package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.xml.ModelValidationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -169,6 +170,35 @@ public class BpmntModelInstanceImplTest {
         exception.expect(ElementNotFoundException.class);
         simpleModel.suppress(flowElementToRemove);
     }
+
+    // Test cases for the 'modify' method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
+    public void modify_ExistingProperty_PropertyModified() {
+        FlowElement element = simpleModel.getModelElementsByType(FlowElement.class).iterator().next();
+        String property = "name";
+        String name = "my new name";
+        simpleModel.modify(element, property, name);
+        assertEquals(element.getName(), name);
+        assertEquals(element.getAttributeValue(property), name);
+
+        Bpmn.validateModel(simpleModel);
+    }
+
+    @Test
+    public void modify_NewProperty_ExceptionThrown() {
+        FlowElement element = simpleModel.getModelElementsByType(FlowElement.class).iterator().next();
+        String property = "newProperty";
+        String name = "my new name";
+        simpleModel.modify(element.getId(), property, name);
+        assertEquals(element.getAttributeValue(property), name);
+
+        exception.expect(ModelValidationException.class);
+        Bpmn.validateModel(simpleModel);
+    }
+
+
 
 
     // Test cases for the 'rename' method

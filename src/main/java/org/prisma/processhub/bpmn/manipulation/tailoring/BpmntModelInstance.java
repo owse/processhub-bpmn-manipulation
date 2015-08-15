@@ -31,6 +31,10 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     <T extends FlowElement> void suppress (Collection<T> elements);
     void suppress (String elementId);
 
+    <T extends FlowElement> void modify(T element, String property, String value);
+    void modify(String elementId, String property, String value);
+
+
     // High-level operations
     void rename(String elementId, String newName);
     void rename(FlowElement element, String newName);
