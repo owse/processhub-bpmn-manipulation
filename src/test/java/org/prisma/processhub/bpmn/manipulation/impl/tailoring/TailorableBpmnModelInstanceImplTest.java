@@ -2,45 +2,81 @@ package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelValidationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import static org.junit.Assert.*;
 
-public class BpmntModelInstanceImplTest {
+public class TailorableBpmnModelInstanceImplTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
-    private BpmntModelInstance simpleModel;
-    private BpmntModelInstance simpleModel2;
-    private BpmntModelInstance parallelModel;
-    private BpmntModelInstance parallelModel2;
-    private BpmntModelInstance subprocessModel;
-    private BpmntModelInstance fragmentModel;
+    private TailorableBpmnModelInstance simpleModel;
+    private TailorableBpmnModelInstance simpleModel2;
+    private TailorableBpmnModelInstance parallelModel;
+    private TailorableBpmnModelInstance parallelModel2;
+    private TailorableBpmnModelInstance subprocessModel;
+    private TailorableBpmnModelInstance fragmentModel;
 
     // Load diagrams before each test
     @Before
     public void loadDiagrams() {
-        simpleModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        simpleModel2 = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
-        parallelModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
-        parallelModel2 = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
-        subprocessModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
-        fragmentModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
+        simpleModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        simpleModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        parallelModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
+        parallelModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+        subprocessModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
+        fragmentModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
     }
 
     // Tests naming convention: methodName_StateUnderTest_ExpectedBehavior
+
+    // Test cases for the 'extend' method
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    @Test
+    public void extend_ModelExtended_BpmntModelCreated() {
+        BpmntModelInstance bpmntModelInstance = simpleModel.extend();
+
+        // Verify model consistency with Camunda API
+        Bpmnt.validateModel(bpmntModelInstance);
+
+        // Check if the process ID was correctly set
+        assertEquals(
+                "BPMNt_" + BpmnElementSearcher.findFirstProcess(simpleModel).getId(),
+                BpmnElementSearcher.findFirstProcess(bpmntModelInstance).getId()
+        );
+
+        // Check if only one Extend operation object was added to the BPMNt log
+        assert(bpmntModelInstance.getBpmntLog().iterator().next() instanceof Extend);
+        assertEquals(1, bpmntModelInstance.getBpmntLog().size());
+
+        Collection<FlowElement> baseFlowElements = simpleModel.getModelElementsByType(FlowElement.class);
+
+        // Verify that every flow element was successfully copied to the bpmntModelInstance
+        for (FlowElement fe: baseFlowElements) {
+            assert(bpmntModelInstance.contains(fe));
+        }
+
+    }
 
     // Test cases for the 'contribute' method
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -53,7 +89,7 @@ public class BpmntModelInstanceImplTest {
         simpleModel.contribute(element);
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
     @Test
@@ -65,7 +101,7 @@ public class BpmntModelInstanceImplTest {
         simpleModel.contribute(foreignElement.getParentElement(), element);
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
     @Test
@@ -80,7 +116,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(newElement.getName(), foreignElement.getName());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
     @Test
@@ -97,7 +133,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(newElement.getName(), newTask.getName());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
     @Test
@@ -127,7 +163,7 @@ public class BpmntModelInstanceImplTest {
         simpleModel.contribute(foreignElement);
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
 
@@ -223,7 +259,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(newName, renamedElement.getName());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        TailorableBpmn.validateModel(simpleModel);
     }
 
     @Test
@@ -265,7 +301,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(endEvent, remainingTask.getSucceedingNodes().singleResult());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(parallelModel);
+        TailorableBpmn.validateModel(parallelModel);
     }
 
     @Test
@@ -299,15 +335,15 @@ public class BpmntModelInstanceImplTest {
         assertEquals(initialNumberFlowNodes - fragment.size(), parallelModel2.getModelElementsByType(FlowNode.class).size());
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(parallelModel2);
+        TailorableBpmn.validateModel(parallelModel2);
 
     }
 
     @Test
     public void testReplaceNodeWithNode() {
         System.out.println("Testing replace (node for node)");
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
         FlowNode replacedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
@@ -324,7 +360,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(succeedingNode, newTask.getSucceedingNodes().singleResult());
         assertEquals(replacingTask.getId(), newTask.getId());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
 
     }
 
@@ -332,8 +368,8 @@ public class BpmntModelInstanceImplTest {
     public void testReplaceNodeWithFragment() {
         System.out.println("Testing replace (node for fragment)");
 
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         FlowNode replacedTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
 
@@ -355,14 +391,14 @@ public class BpmntModelInstanceImplTest {
         assertEquals(endingNodeId, endingNode.getId());
         assertEquals(3, modelInstance1.getModelElementsByType(Task.class).size());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
     }
 
     @Test
     public void testReplaceFragmentWithNode() {
         System.out.println("Testing replace (fragment for node)");
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         FlowNode replacingTask = modelInstance2.getModelElementsByType(Task.class).iterator().next();
         FlowNode replacedTask1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
@@ -381,14 +417,14 @@ public class BpmntModelInstanceImplTest {
         assertEquals(replacingTask.getId(), newTask.getId());
         assertEquals(1, modelInstance1.getModelElementsByType(Task.class).size());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
     }
 
     @Test
     public void testReplaceFragmentWithFragment() {
         System.out.println("Testing replace (fragment for fragment)");
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         String replacingTaskId1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2).getId();
         String replacingTaskId2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance2).getId();
@@ -412,7 +448,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(2, modelInstance1.getModelElementsByType(Task.class).size());
         assertEquals(3, modelInstance1.getModelElementsByType(SequenceFlow.class).size());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
     }
 
     @Test
@@ -420,7 +456,7 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing move (single node)");
 
         // First try: both position arguments set
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
         StartEvent afterOf1 = BpmnElementSearcher.findStartEvent(modelInstance1);
         FlowNode beforeOf1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
@@ -436,7 +472,7 @@ public class BpmntModelInstanceImplTest {
 
 
         // Second try: afterOf position set
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
         StartEvent afterOf2 = BpmnElementSearcher.findStartEvent(modelInstance2);
         FlowNode beforeOf2 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance2);
@@ -452,7 +488,7 @@ public class BpmntModelInstanceImplTest {
 
 
         // Third try: beforeOf position set
-        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance3 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
         StartEvent afterOf3 = BpmnElementSearcher.findStartEvent(modelInstance3);
         FlowNode beforeOf3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance3);
@@ -472,7 +508,7 @@ public class BpmntModelInstanceImplTest {
     public void testMoveFragment() {
         System.out.println("Testing move (fragment)");
 
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
 
         StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
         FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);
@@ -492,7 +528,7 @@ public class BpmntModelInstanceImplTest {
     public void testParallelize() {
         System.out.print("Testing parallelize");
 
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
 
         FlowNode startingNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
         FlowNode endingNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
@@ -524,8 +560,8 @@ public class BpmntModelInstanceImplTest {
     @Test
     public void testSplit() {
         System.out.println("Testing split");
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         Task splitTask = modelInstance1.getModelElementsByType(Task.class).iterator().next();
         String targetId = splitTask.getId();
@@ -562,7 +598,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(sourceLastNode.getId(), subProcessLastNode.getId());
         assertEquals(sourceEndEvent.getId(), subProcessEndEvent.getId());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
     }
 
     @Test
@@ -570,8 +606,8 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing insert in series (single node)");
 
         // First try (afterOf == null)
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf1 = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf1 = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
@@ -591,11 +627,11 @@ public class BpmntModelInstanceImplTest {
         assertEquals(lastNode1, insertedTask1.getPreviousNodes().singleResult());
         assertEquals(beforeOf1, insertedTask1.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
 
         // Second try (beforeOf == null)
-        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance4 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance3 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance4 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf2 = modelInstance3.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf2 = modelInstance3.getModelElementsByType(EndEvent.class).iterator().next();
@@ -616,12 +652,12 @@ public class BpmntModelInstanceImplTest {
         assertEquals(afterOf2, insertedTask2.getPreviousNodes().singleResult());
         assertEquals(firstNode2, insertedTask2.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance3);
+        TailorableBpmn.validateModel(modelInstance3);
 
 
         // Third try (afterOf and beforeOf nodes set)
-        BpmntModelInstance modelInstance5 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance6 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance5 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance6 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance5);
@@ -639,7 +675,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(afterOf3, insertedTask3.getPreviousNodes().singleResult());
         assertEquals(beforeOf3, insertedTask3.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance5);
+        TailorableBpmn.validateModel(modelInstance5);
     }
 
     @Test
@@ -647,8 +683,8 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing insert in parallel (single node)");
 
         // First try (afterOf == null)
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
@@ -687,7 +723,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(convergingGateway, lastNode.getSucceedingNodes().singleResult());
         assertEquals(convergingGateway, insertedTask.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
     }
 
     @Test
@@ -695,8 +731,8 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing insert in series (fragment)");
 
         // First try (afterOf == null)
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf1 = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf1 = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
@@ -717,11 +753,11 @@ public class BpmntModelInstanceImplTest {
         assertEquals(lastNode1, firstNode2.getPreviousNodes().singleResult());
         assertEquals(beforeOf1, lastNode2.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
 
         // Second try (beforeOf == null)
-        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance4 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance3 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance4 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf2 = modelInstance3.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf2 = modelInstance3.getModelElementsByType(EndEvent.class).iterator().next();
@@ -742,11 +778,11 @@ public class BpmntModelInstanceImplTest {
         assertEquals(afterOf2, firstNode4.getPreviousNodes().singleResult());
         assertEquals(firstNode3, lastNode4.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance3);
+        TailorableBpmn.validateModel(modelInstance3);
 
         // Third try (afterOf and beforeOf nodes set)
-        BpmntModelInstance modelInstance5 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance6 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance5 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance6 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf3 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance5);
@@ -764,15 +800,15 @@ public class BpmntModelInstanceImplTest {
         assertEquals(afterOf3, firstNode6.getPreviousNodes().singleResult());
         assertEquals(beforeOf3, lastNode6.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance5);
+        TailorableBpmn.validateModel(modelInstance5);
     }
 
     @Test
     public void testInsertFragmentInParallel() {
         System.out.println("Testing insert in parallel (fragment)");
 
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         StartEvent afterOf = modelInstance1.getModelElementsByType(StartEvent.class).iterator().next();
         EndEvent beforeOf = modelInstance1.getModelElementsByType(EndEvent.class).iterator().next();
@@ -812,7 +848,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(convergingGateway, lastNode1.getSucceedingNodes().singleResult());
         assertEquals(convergingGateway, lastNode2.getSucceedingNodes().singleResult());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
    }
 
     @Test
@@ -820,8 +856,8 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing conditional insert (single node)");
 
         // First try (nodes in succession)
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf1 = BpmnElementSearcher.findStartEvent(modelInstance1);
@@ -847,12 +883,12 @@ public class BpmntModelInstanceImplTest {
         // Checks if the condition has been correctly assigned
         assertEquals(condition1, insertedTask1.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
 
 
         // Second try (nodes not in succession)
-        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance4 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance3 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance4 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf2 = BpmnElementSearcher.findStartEvent(modelInstance3);
@@ -881,7 +917,7 @@ public class BpmntModelInstanceImplTest {
         // Checks if the condition has been correctly assigned
         assertEquals(condition2, insertedTask2.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
-        Bpmnt.validateModel(modelInstance3);
+        TailorableBpmn.validateModel(modelInstance3);
     }
 
     @Test
@@ -889,8 +925,8 @@ public class BpmntModelInstanceImplTest {
         System.out.println("Testing conditional insert (fragment)");
 
         // First try (nodes in succession)
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance2 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance2 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf1 = BpmnElementSearcher.findStartEvent(modelInstance1);
@@ -917,12 +953,12 @@ public class BpmntModelInstanceImplTest {
         // Checks if the condition has been correctly assigned
         assertEquals(condition, firstInsertedNode1.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
-        Bpmnt.validateModel(modelInstance1);
+        TailorableBpmn.validateModel(modelInstance1);
 
 
         // Second try (nodes not in succession)
-        BpmntModelInstance modelInstance3 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        BpmntModelInstance modelInstance4 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        TailorableBpmnModelInstance modelInstance3 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance4 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
 
         // Extract nodes from the model
         FlowNode afterOf2 = BpmnElementSearcher.findStartEvent(modelInstance3);
@@ -952,14 +988,14 @@ public class BpmntModelInstanceImplTest {
         // Checks if the condition has been correctly assigned
         assertEquals(condition2, firstInsertedNode.getIncoming().iterator().next().getConditionExpression().getTextContent());
 
-        Bpmnt.validateModel(modelInstance3);
+        TailorableBpmn.validateModel(modelInstance3);
     }
 
     @Test
     public void testFragmentValidation() {
         System.out.println("Testing fragment validation");
 
-        BpmntModelInstance modelInstance = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
 
         StartEvent afterOf = BpmnElementSearcher.findStartEvent(modelInstance);
         FlowNode beforeOf = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance);

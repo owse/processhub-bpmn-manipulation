@@ -4,7 +4,6 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
 
 import java.util.Collection;
 

@@ -4,6 +4,7 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 
 import java.util.Collection;
@@ -11,7 +12,7 @@ import java.util.Collection;
 //import java.util.List;
 
 // Interface that extends the Camunda API with tailoring operations
-public interface BpmntModelInstance extends BpmnModelInstance {
+public interface TailorableBpmnModelInstance extends BpmnModelInstance {
 
     // Useful operations that extend BpmnModelInstance features
     boolean contains (FlowElement element);
@@ -23,7 +24,9 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void connectAllPreviousToSucceedingNodes(FlowNode node);
 
 
-        // Low-level operations
+    // Low-level operations
+    BpmntModelInstance extend();
+
     <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element);
     <T extends FlowElement> T contribute(T element);
 
@@ -77,7 +80,4 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, Process fragmentToInsert,  String condition, boolean inLoop);
     void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop);
 
-//    void insertInSeries(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
-//    void insertWithCondition(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
-//    void insertInParallel(FlowNode beforeNode, FlowNode afterNode, Process fragmentToInsert);
 }

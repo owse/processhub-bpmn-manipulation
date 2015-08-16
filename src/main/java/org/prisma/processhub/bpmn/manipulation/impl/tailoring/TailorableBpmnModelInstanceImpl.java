@@ -1,29 +1,33 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
-import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.Query;
 import org.camunda.bpm.model.bpmn.impl.BpmnModelInstanceImpl;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
-import org.camunda.bpm.model.xml.impl.instance.ModelElementInstanceImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.BpmntOperation;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.tailoring.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.*;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
-public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements BpmntModelInstance {
+public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl implements TailorableBpmnModelInstance {
 
     // Constructor
-    public BpmntModelInstanceImpl(ModelImpl model, ModelBuilder modelBuilder, DomDocument document) {
+    public TailorableBpmnModelInstanceImpl(ModelImpl model, ModelBuilder modelBuilder, DomDocument document) {
         super(model, modelBuilder, document);
     }
 
@@ -86,15 +90,35 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+    // Create a BPMNt model from a tailorable model
+    public BpmntModelInstance extend() {
+
+        // Copy the tailorable model to a BPMNt model
+        InputStream stream = new ByteArrayInputStream(TailorableBpmn.convertToString(this).getBytes(StandardCharsets.UTF_8));
+        BpmntModelInstance bpmntModelInstance = Bpmnt.readModelFromStream(stream);
+
+        Process process = BpmnElementSearcher.findFirstProcess(bpmntModelInstance);
+
+        // Instance and populate the list of operations
+        List<BpmntOperation> bpmntLog = new ArrayList<BpmntOperation>();
+        Extend ext = new Extend(process.getId());
+        bpmntLog.add(ext);
+        bpmntModelInstance.setBpmntLog(bpmntLog);
+
+        process.setId(ext.getNewProcessId());
+
+        return bpmntModelInstance;
+    }
+
     // Add a new single process element to the given parent element
     public <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element) {
         // Verify that parent element is part of this model
         BpmnHelper.checkElementPresent(this.equals(parentElement.getModelInstance()),
-                                       "parentElement is not part of this BpmntModelInstance");
+                                       "parentElement is not part of this TailorableBpmnModelInstance");
 
         // Verify that element id doesn't conflict with another one in the model
         if (getModelElementById(element.getId()) != null) {
-            throw new IllegalArgumentException("There is another element with id \'" + element.getId() + "\' in this BpmntModelInstance");
+            throw new IllegalArgumentException("There is another element with id \'" + element.getId() + "\' in this TailorableBpmnModelInstance");
         }
 
         // Create new FlowElement in model with same properties as element parameter
@@ -114,7 +138,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     // Remove flow element leaving the rest of the model untouched
     public <T extends FlowElement> void suppress(T element) {
         // Verify if element is part of this model instance
-        BpmnHelper.checkElementPresent(contains(element), "FlowElement with id \'" + element.getId() + "\' is not part of this BpmntModelInstance");
+        BpmnHelper.checkElementPresent(contains(element), "FlowElement with id \'" + element.getId() + "\' is not part of this TailorableBpmnModelInstance");
         BpmnModelElementInstance parentElement = (BpmnModelElementInstance) element.getParentElement();
         parentElement.removeChildElement(element);
     }
@@ -153,7 +177,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     public void rename(FlowElement element, String newName) {
         BpmnHelper.checkElementPresent(contains(element),
-                "FlowElement with id \'" + element.getId() + "\' is not part of this BpmntModelInstance");
+                "FlowElement with id \'" + element.getId() + "\' is not part of this TailorableBpmnModelInstance");
         element.setName(newName);
     }
 
@@ -180,7 +204,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         suppress(node);
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(this);
+        TailorableBpmn.validateModel(this);
     }
 
     public void fixGatewaysDelete(Collection<FlowNode> previousNodes, Collection<FlowNode> succeedingNodes) {
@@ -843,8 +867,8 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         FlowNode firstNodeToInsert = BpmnElementSearcher.findFlowNodeAfterStartEvent(fragmentToInsert);
         String lastNodeToInsertId = BpmnElementSearcher.findFlowNodeBeforeEndEvent(fragmentToInsert).getId();
 
-        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), startEvent.getId());
-        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), endEvent.getId());
+        BpmnElementRemover.removeFlowNode((TailorableBpmnModelInstance) fragmentToInsert.getModelInstance(), startEvent.getId());
+        BpmnElementRemover.removeFlowNode((TailorableBpmnModelInstance) fragmentToInsert.getModelInstance(), endEvent.getId());
 
         // Insert node in series before "beforeOf" node
         if (afterOf == null) {
@@ -909,7 +933,6 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
 
     public void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert) {
         insert(afterOf, beforeOf, BpmnElementSearcher.findFirstProcess(fragmentToInsert));
-        return;
     }
 
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {
@@ -1007,8 +1030,8 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         FlowNode firstNodeToInsert = BpmnElementSearcher.findFlowNodeAfterStartEvent(fragmentToInsert);
         String lastNodeToInsertId = BpmnElementSearcher.findFlowNodeBeforeEndEvent(fragmentToInsert).getId();
 
-        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), startEvent.getId());
-        BpmnElementRemover.removeFlowNode((BpmntModelInstance) fragmentToInsert.getModelInstance(), endEvent.getId());
+        BpmnElementRemover.removeFlowNode((TailorableBpmnModelInstance) fragmentToInsert.getModelInstance(), startEvent.getId());
+        BpmnElementRemover.removeFlowNode((TailorableBpmnModelInstance) fragmentToInsert.getModelInstance(), endEvent.getId());
 
 
         // Insert in series (optional node)
@@ -1060,10 +1083,6 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         FlowNode lastCreatedFlowNode = getModelElementById(lastNodeToInsertId);
 
         lastCreatedFlowNode.builder().connectTo(convergentGateway.getId());
-
-        return;
-
-
     }
 
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop) {
@@ -1075,8 +1094,5 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
                 inLoop
         );
     }
-
-    //public void extend (BpmnModelInstance modelInstance);
-    //public void modify (FlowElement targetElement, List<String> properties);
 
 }

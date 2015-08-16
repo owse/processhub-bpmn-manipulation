@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation.bpmnt;
+package org.prisma.processhub.bpmn.manipulation.tailoring;
 
 import org.camunda.bpm.model.bpmn.BpmnModelException;
 import org.camunda.bpm.model.bpmn.builder.ProcessBuilder;
@@ -22,48 +22,48 @@ import org.camunda.bpm.model.xml.impl.util.ModelUtil;
 import java.io.*;
 
 
-public class Bpmnt {
-    public static Bpmnt INSTANCE = new Bpmnt();
-    private BpmntParser bpmntParser = new BpmntParser();
-    private final ModelBuilder bpmntModelBuilder = ModelBuilder.createInstance("Tailorable BPMN Model");
-    private Model BpmntModel;
+public class TailorableBpmn {
+    public static TailorableBpmn INSTANCE = new TailorableBpmn();
+    private TailorableBpmnParser tailorableBpmnParser = new TailorableBpmnParser();
+    private final ModelBuilder tailorableBpmnModelBuilder = ModelBuilder.createInstance("Tailorable BPMN Model");
+    private Model TailorableBpmnModel;
 
-    public static BpmntModelInstance readModelFromFile(File file) {
+    public static TailorableBpmnModelInstance readModelFromFile(File file) {
         return INSTANCE.doReadModelFromFile(file);
     }
 
-    public static BpmntModelInstance readModelFromStream(InputStream stream) {
+    public static TailorableBpmnModelInstance readModelFromStream(InputStream stream) {
         return INSTANCE.doReadModelFromInputStream(stream);
     }
 
-    public static void writeModelToFile(File file, BpmntModelInstance modelInstance) {
+    public static void writeModelToFile(File file, TailorableBpmnModelInstance modelInstance) {
         INSTANCE.doWriteModelToFile(file, modelInstance);
     }
 
-    public static void writeModelToStream(OutputStream stream, BpmntModelInstance modelInstance) {
+    public static void writeModelToStream(OutputStream stream, TailorableBpmnModelInstance modelInstance) {
         INSTANCE.doWriteModelToOutputStream(stream, modelInstance);
     }
 
-    public static String convertToString(BpmntModelInstance modelInstance) {
+    public static String convertToString(TailorableBpmnModelInstance modelInstance) {
         return INSTANCE.doConvertToString(modelInstance);
     }
 
 
-    public static void validateModel(BpmntModelInstance modelInstance) {
+    public static void validateModel(TailorableBpmnModelInstance modelInstance) {
         INSTANCE.doValidateModel(modelInstance);
     }
 
-    public static BpmntModelInstance createEmptyModel() {
+    public static TailorableBpmnModelInstance createEmptyModel() {
         return INSTANCE.doCreateEmptyModel();
     }
 
-    public static ProcessBuilder createProcess() {
-        BpmntModelInstance modelInstance = INSTANCE.doCreateEmptyModel();
+    public static org.camunda.bpm.model.bpmn.builder.ProcessBuilder createProcess() {
+        TailorableBpmnModelInstance modelInstance = INSTANCE.doCreateEmptyModel();
         Definitions definitions = (Definitions)modelInstance.newInstance(Definitions.class);
         definitions.setTargetNamespace("http://www.omg.org/spec/BPMN/20100524/MODEL");
         definitions.getDomElement().registerNamespace("camunda", "http://activiti.org/bpmn");
         modelInstance.setDefinitions(definitions);
-        Process process = (Process)modelInstance.newInstance(Process.class);
+        org.camunda.bpm.model.bpmn.instance.Process process = (Process)modelInstance.newInstance(Process.class);
         String processId = ModelUtil.getUniqueIdentifier(process.getElementType());
         process.setId(processId);
         definitions.addChildElement(process);
@@ -82,15 +82,15 @@ public class Bpmnt {
         return (ProcessBuilder)createProcess(processId).executable();
     }
 
-    protected Bpmnt() {
-        this.doRegisterTypes(this.bpmntModelBuilder);
-        this.BpmntModel = this.bpmntModelBuilder.build();
+    protected TailorableBpmn() {
+        this.doRegisterTypes(this.tailorableBpmnModelBuilder);
+        this.TailorableBpmnModel = this.tailorableBpmnModelBuilder.build();
     }
 
-    protected BpmntModelInstance doReadModelFromFile(File file) {
+    protected TailorableBpmnModelInstance doReadModelFromFile(File file) {
         FileInputStream is = null;
 
-        BpmntModelInstance e;
+        TailorableBpmnModelInstance e;
         try {
             is = new FileInputStream(file);
             e = this.doReadModelFromInputStream(is);
@@ -103,11 +103,11 @@ public class Bpmnt {
         return e;
     }
 
-    protected BpmntModelInstance doReadModelFromInputStream(InputStream is) {
-        return this.bpmntParser.parseModelFromStream(is);
+    protected TailorableBpmnModelInstance doReadModelFromInputStream(InputStream is) {
+        return this.tailorableBpmnParser.parseModelFromStream(is);
     }
 
-    protected void doWriteModelToFile(File file, BpmntModelInstance modelInstance) {
+    protected void doWriteModelToFile(File file, TailorableBpmnModelInstance modelInstance) {
         FileOutputStream os = null;
 
         try {
@@ -121,22 +121,22 @@ public class Bpmnt {
 
     }
 
-    protected void doWriteModelToOutputStream(OutputStream os, BpmntModelInstance modelInstance) {
+    protected void doWriteModelToOutputStream(OutputStream os, TailorableBpmnModelInstance modelInstance) {
         this.doValidateModel(modelInstance);
         IoUtil.writeDocumentToOutputStream(modelInstance.getDocument(), os);
     }
 
-    protected String doConvertToString(BpmntModelInstance modelInstance) {
+    protected String doConvertToString(TailorableBpmnModelInstance modelInstance) {
         this.doValidateModel(modelInstance);
         return IoUtil.convertXmlDocumentToString(modelInstance.getDocument());
     }
 
-    protected void doValidateModel(BpmntModelInstance modelInstance) {
-        this.bpmntParser.validateModel(modelInstance.getDocument());
+    protected void doValidateModel(TailorableBpmnModelInstance modelInstance) {
+        this.tailorableBpmnParser.validateModel(modelInstance.getDocument());
     }
 
-    protected BpmntModelInstance doCreateEmptyModel() {
-        return this.bpmntParser.getEmptyModel();
+    protected TailorableBpmnModelInstance doCreateEmptyModel() {
+        return this.tailorableBpmnParser.getEmptyModel();
     }
 
     protected void doRegisterTypes(ModelBuilder bpmnModelBuilder) {
@@ -355,15 +355,15 @@ public class Bpmnt {
         CamundaValueImpl.registerType(bpmnModelBuilder);
     }
 
-    public Model getBpmntModel() {
-        return this.BpmntModel;
+    public Model getTailorableBpmnModel() {
+        return this.TailorableBpmnModel;
     }
 
-    public ModelBuilder getBpmntModelBuilder() {
-        return this.bpmntModelBuilder;
+    public ModelBuilder getTailorableBpmnModelBuilder() {
+        return this.tailorableBpmnModelBuilder;
     }
 
-    public void setBpmntModel(Model bpmntModel) {
-        this.BpmntModel = bpmntModel;
+    public void setTailorableBpmnModel(Model tailorableBpmnModel) {
+        this.TailorableBpmnModel = tailorableBpmnModel;
     }
 }
