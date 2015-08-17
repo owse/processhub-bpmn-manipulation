@@ -40,7 +40,6 @@ public final class BpmnElementRemover {
         }
 
         flowElements.removeAll(sequenceFlows);
-        return;
     }
 
     // Removes a flow node and all sequence flows connected to it
@@ -71,8 +70,6 @@ public final class BpmnElementRemover {
         removeAllSequenceFlows(modelInstance, sequenceFlowsIn);
         removeAllSequenceFlows(modelInstance, sequenceFlowsOut);
         flowElements.remove(flowNode);
-
-        return;
     }
 
     public static void isolateFlowNode(FlowNode flowNode) {

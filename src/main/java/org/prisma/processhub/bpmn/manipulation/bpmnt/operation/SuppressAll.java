@@ -5,7 +5,7 @@ import java.util.Collection;
 public class SuppressAll extends BpmntOperation {
     private Collection<String> collectionSuppressedElementsIds;
 
-    SuppressAll(int executionOrder, Collection<String> collectionSuppressedElementsIds) {
+    public SuppressAll(int executionOrder, Collection<String> collectionSuppressedElementsIds) {
         this.executionOrder = executionOrder;
         this.collectionSuppressedElementsIds = collectionSuppressedElementsIds;
         name = "SuppressAll";

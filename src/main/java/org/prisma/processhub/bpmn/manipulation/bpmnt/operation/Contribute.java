@@ -5,7 +5,7 @@ import org.camunda.bpm.model.bpmn.instance.FlowElement;
 public class Contribute extends BpmntOperation {
     private FlowElement newElement;
 
-    Contribute(int executionOrder, FlowElement newElement) {
+    public Contribute(int executionOrder, FlowElement newElement) {
         this.executionOrder = executionOrder;
         this.newElement = newElement;
         name = "Contribute";
