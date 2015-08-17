@@ -36,6 +36,9 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
         this.bpmntLog = bpmntLog;
     }
 
+    public int getNumberOperations() {
+        return bpmntLog.size();
+    }
 
 
     // Low-level operations
@@ -48,7 +51,7 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
 
     // Add a new single element to the first process in this model as parent
     public <T extends FlowElement> T contribute(T element) {
-        return super.contribute(element);
+       return super.contribute(element);
     }
 
     // Remove flow element leaving the rest of the model untouched

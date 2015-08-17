@@ -9,4 +9,6 @@ public interface BpmntModelInstance extends TailorableBpmnModelInstance {
     List<BpmntOperation> getBpmntLog();
 
     void setBpmntLog(List<BpmntOperation> bpmntLog);
+
+    int getNumberOperations();
 }

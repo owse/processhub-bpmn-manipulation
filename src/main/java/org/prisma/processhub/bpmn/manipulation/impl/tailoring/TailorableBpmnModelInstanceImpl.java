@@ -36,10 +36,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
 
     // Verify if an element is contained in this BpmnModelInstance
     public boolean contains(FlowElement element) {
-        if (getModelElementById(element.getId()) == null) {
-            return false;
-        }
-        return true;
+        return getModelElementById(element.getId()) != null;
     }
 
     // Set a generated unique id to a single element of the model and return it
@@ -85,7 +82,6 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
             }
         }
     }
-
 
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

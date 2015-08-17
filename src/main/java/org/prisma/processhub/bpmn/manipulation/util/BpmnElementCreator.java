@@ -1,9 +1,17 @@
 package org.prisma.processhub.bpmn.manipulation.util;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Iterator;
 
@@ -142,6 +150,33 @@ public final class BpmnElementCreator {
             }
         }
         return;
+    }
+
+    // Make a copy of a BpmnModelInstance
+    public static BpmnModelInstance copyModelInstance (BpmnModelInstance modelToCopy) {
+        return Bpmn.readModelFromStream(
+                    new ByteArrayInputStream(
+                        Bpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                    )
+                );
+    }
+
+    // Make a copy of a TailorableBpmnModelInstance
+    public static TailorableBpmnModelInstance copyModelInstance (TailorableBpmnModelInstance modelToCopy) {
+        return TailorableBpmn.readModelFromStream(
+                    new ByteArrayInputStream(
+                            TailorableBpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                    )
+                );
+    }
+
+    // Make a copy of a BpmntModelInstance
+    public static BpmntModelInstance copyModelInstance (BpmntModelInstance modelToCopy) {
+        return Bpmnt.readModelFromStream(
+                    new ByteArrayInputStream(
+                        Bpmnt.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                    )
+                );
     }
 
 }
