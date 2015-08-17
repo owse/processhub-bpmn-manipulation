@@ -5,10 +5,14 @@ public class Extend extends BpmntOperation {
     private String newProcessId;
 
     public Extend (String baseProcessId) {
-        name = "extend";
+        name = "Extend";
         executionOrder = 1;
         this.baseProcessId = baseProcessId;
         newProcessId = "BPMNt_" + baseProcessId;
+    }
+
+    public String getBaseProcessId() {
+        return baseProcessId;
     }
 
     public String getNewProcessId() {

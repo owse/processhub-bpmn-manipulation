@@ -10,7 +10,7 @@ public class Modify extends BpmntOperation {
         this.modifiedElementId = modifiedElementId;
         this.property = property;
         this.value = value;
-        name = "modify";
+        name = "Modify";
     }
 
     public String getModifiedElementId() {

@@ -6,7 +6,7 @@ public class Suppress extends BpmntOperation {
     Suppress(int executionOrder, String suppressedElementId) {
         this.executionOrder = executionOrder;
         this.suppressedElementId = suppressedElementId;
-        name = "suppress";
+        name = "Suppress";
     }
 
     public String getSuppressedElementId() {

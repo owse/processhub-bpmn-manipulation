@@ -9,7 +9,7 @@ public class ContributeCustomParent extends Contribute {
     public ContributeCustomParent(int executionOrder, FlowElement newElement, ModelElementInstance parentElement) {
         super(executionOrder, newElement);
         this.parentElement = parentElement;
-        name = "contributeCustomParent";
+        name = "ContributeCustomParent";
     }
 
     public ModelElementInstance getParentElement() {

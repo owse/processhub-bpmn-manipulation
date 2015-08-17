@@ -8,7 +8,7 @@ public class SuppressAll extends BpmntOperation {
     SuppressAll(int executionOrder, Collection<String> collectionSuppressedElementsIds) {
         this.executionOrder = executionOrder;
         this.collectionSuppressedElementsIds = collectionSuppressedElementsIds;
-        name = "suppressAll";
+        name = "SuppressAll";
     }
 
     public Collection<String> getCollectionSuppressedElementsIds() {

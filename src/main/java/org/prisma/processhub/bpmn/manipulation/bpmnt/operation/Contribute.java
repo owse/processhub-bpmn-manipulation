@@ -8,7 +8,7 @@ public class Contribute extends BpmntOperation {
     Contribute(int executionOrder, FlowElement newElement) {
         this.executionOrder = executionOrder;
         this.newElement = newElement;
-        name = "contribute";
+        name = "Contribute";
     }
 
     public FlowElement getNewElement() {
