@@ -3,6 +3,7 @@ package org.prisma.processhub.bpmn.manipulation.util;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
@@ -177,6 +178,14 @@ public final class BpmnElementCreator {
                         Bpmnt.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
                     )
                 );
+    }
+
+    public static  <T extends ModelElementInstance> T copyElement(T element) {
+        BpmnModelInstance modelInstance = (BpmnModelInstance) element.getModelInstance();
+        T copiedElement = (T) modelInstance.newInstance(element.getElementType());
+        copiedElement.setAttributeValue("id", element.getAttributeValue("id"), true);
+        copiedElement.setAttributeValue("name", element.getAttributeValue("name"), true);
+        return copiedElement;
     }
 
 }

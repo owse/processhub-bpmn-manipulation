@@ -44,7 +44,9 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     }
 
     public int getNumberOperations() {
-        return bpmntLog.size();
+        if (isBpmntLogInitialized())
+            return bpmntLog.size();
+        return 0;
     }
 
 
@@ -72,22 +74,23 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     }
 
     // Contribute
-    // TODO: copy element before adding the operation to the BPMNt log
     // Add a new single process element to the given parent element
     public <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element) {
         T newElement = super.contribute(parentElement, element);
         if (isBpmntLogInitialized()) {
-            bpmntLog.add(new ContributeCustomParent(getNumberOperations() + 1, parentElement, element));
+            E copiedParent = BpmnElementCreator.copyElement(parentElement);
+            T copiedElement = BpmnElementCreator.copyElement(element);
+            bpmntLog.add(new ContributeCustomParent(getNumberOperations() + 1, copiedParent, copiedElement));
         }
         return newElement;
     }
 
-    // TODO: copy element before adding the operation to the BPMNt log
     // Add a new single element to the first process in this model as parent
     public <T extends FlowElement> T contribute(T element) {
         T newElement = super.contribute(element);
         if (isBpmntLogInitialized()) {
-            bpmntLog.add(new Contribute(getNumberOperations() + 1, element));
+            T copiedElement = BpmnElementCreator.copyElement(element);
+            bpmntLog.add(new Contribute(getNumberOperations() + 1, copiedElement));
         }
         return newElement;
     }
@@ -191,11 +194,11 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     }
 
     // Replace
-    // TODO: copy element before adding the operation to the BPMNt log
     public void replace(FlowNode existingNode, FlowNode replacingNode) {
         super.replace(existingNode, replacingNode);
         if (isBpmntLogInitialized()) {
-            bpmntLog.add(new ReplaceNodeWithNode(getNumberOperations() + 1, existingNode.getId(), replacingNode));
+            FlowNode copiedNode = BpmnElementCreator.copyElement(replacingNode);
+            bpmntLog.add(new ReplaceNodeWithNode(getNumberOperations() + 1, existingNode.getId(), copiedNode));
         }
     }
 
@@ -217,16 +220,16 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
         BpmnHelper.checkElementPresent(existingNode != null, "Flow Node with id \'" + existingNodeId + "\' not found");
         replace(existingNode, replacingFragment);    }
 
-    // TODO: copy element before adding the operation to the BPMNt log
     public void replace(FlowNode startingNode, FlowNode endingNode, FlowNode replacingNode) {
         super.replace(startingNode, endingNode, replacingNode);
         if (isBpmntLogInitialized()) {
+            FlowNode copiedNode = BpmnElementCreator.copyElement(replacingNode);
             bpmntLog.add(
                     new ReplaceFragmentWithNode(
                             getNumberOperations() + 1,
                             startingNode.getId(),
                             endingNode.getId(),
-                            replacingNode
+                            copiedNode
                     )
             );
         }
@@ -353,16 +356,16 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     }
 
     // Insert
-    // TODO: copy element before adding the operation to the BPMNt log
     public void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert) {
         super.insert(afterOf, beforeOf, flowNodeToInsert);
         if (isBpmntLogInitialized()) {
+            FlowNode copiedNode = BpmnElementCreator.copyElement(flowNodeToInsert);
             bpmntLog.add(
                     new InsertNode(
                             getNumberOperations() + 1,
                             afterOf.getId(),
                             beforeOf.getId(),
-                            flowNodeToInsert
+                            copiedNode
                     )
             );
         }
@@ -390,16 +393,16 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     }
 
     // Conditional Insert
-    // TODO: copy element before adding the operation to the BPMNt log
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {
         super.conditionalInsert(afterOf, beforeOf, flowNodeToInsert, condition, inLoop);
         if (isBpmntLogInitialized()) {
+            FlowNode copiedNode = BpmnElementCreator.copyElement(flowNodeToInsert);
             bpmntLog.add(
                     new ConditionalInsertNode(
                             getNumberOperations() + 1,
                             afterOf.getId(),
                             beforeOf.getId(),
-                            flowNodeToInsert,
+                            copiedNode,
                             condition,
                             inLoop
                     )
