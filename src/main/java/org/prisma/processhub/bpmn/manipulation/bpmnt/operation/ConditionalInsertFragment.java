@@ -4,7 +4,7 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 
 public class ConditionalInsertFragment extends BpmntOperation {
     private String afterOfId;
-    private String BeforeOfId;
+    private String beforeOfId;
     private BpmnModelInstance fragmentToInsert;
     String condition;
     boolean inLoop;
@@ -13,7 +13,7 @@ public class ConditionalInsertFragment extends BpmntOperation {
                                      BpmnModelInstance fragmentToInsert, String condition, boolean inLoop) {
         this.executionOrder = executionOrder;
         this.afterOfId = afterOfId;
-        this.BeforeOfId = BeforeOfId;
+        this.beforeOfId = BeforeOfId;
         this.fragmentToInsert = fragmentToInsert;
         this.condition = condition;
         this.inLoop = inLoop;
@@ -25,7 +25,7 @@ public class ConditionalInsertFragment extends BpmntOperation {
     }
 
     public String getBeforeOfId() {
-        return BeforeOfId;
+        return beforeOfId;
     }
 
     public BpmnModelInstance getFragmentToInsert() {

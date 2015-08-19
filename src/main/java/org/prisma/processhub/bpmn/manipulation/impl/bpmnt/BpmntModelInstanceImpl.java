@@ -78,9 +78,8 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     public <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element) {
         T newElement = super.contribute(parentElement, element);
         if (isBpmntLogInitialized()) {
-            E copiedParent = BpmnElementCreator.copyElement(parentElement);
             T copiedElement = BpmnElementCreator.copyElement(element);
-            bpmntLog.add(new ContributeCustomParent(getNumberOperations() + 1, copiedParent, copiedElement));
+            bpmntLog.add(new ContributeCustomParent(getNumberOperations() + 1, parentElement.getAttributeValue("id"), copiedElement));
         }
         return newElement;
     }
@@ -108,11 +107,12 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
     public <T extends FlowElement> void suppress(Collection<T> elements) {
         super.suppress(elements);
         if (isBpmntLogInitialized()) {
-            Collection<String> elementsIds = new ArrayList<String>();
+            int initialNumberOps = getNumberOperations();
+            int i = 1;
             for (T element : elements) {
-                elementsIds.add(element.getId());
+                bpmntLog.add(new Suppress(initialNumberOps + i, element.getId()));
+                i++;
             }
-            bpmntLog.add(new SuppressAll(getNumberOperations() + 1, elementsIds));
         }
     }
 

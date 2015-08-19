@@ -4,15 +4,15 @@ import org.camunda.bpm.model.bpmn.instance.FlowElement;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
 public class ContributeCustomParent extends Contribute {
-    private ModelElementInstance parentElement;
+    private String parentElementId;
 
-    public ContributeCustomParent(int executionOrder, ModelElementInstance parentElement, FlowElement newElement) {
+    public ContributeCustomParent(int executionOrder, String parentElementId, FlowElement newElement) {
         super(executionOrder, newElement);
-        this.parentElement = parentElement;
+        this.parentElementId = parentElementId;
         name = "ContributeCustomParent";
     }
 
-    public ModelElementInstance getParentElement() {
-        return parentElement;
+    public String getParentElement() {
+        return parentElementId;
     }
 }

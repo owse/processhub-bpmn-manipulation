@@ -188,4 +188,14 @@ public final class BpmnElementCreator {
         return copiedElement;
     }
 
+    // Add a new single process element to the given parent element
+    public static <T extends FlowElement, E extends ModelElementInstance> T add(E parentElement, T element) {
+        // Create new FlowElement in model with same properties as element parameter
+        T newElement = (T) parentElement.getModelInstance().newInstance(element.getElementType());
+        newElement.setId(element.getId());
+        newElement.setName(element.getName());
+        parentElement.addChildElement(newElement);
+        return newElement;
+    }
+
 }
