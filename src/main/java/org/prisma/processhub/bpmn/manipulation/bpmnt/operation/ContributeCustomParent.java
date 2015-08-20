@@ -12,7 +12,7 @@ public class ContributeCustomParent extends Contribute {
         name = "ContributeCustomParent";
     }
 
-    public String getParentElement() {
+    public String getParentElementId() {
         return parentElementId;
     }
 }
