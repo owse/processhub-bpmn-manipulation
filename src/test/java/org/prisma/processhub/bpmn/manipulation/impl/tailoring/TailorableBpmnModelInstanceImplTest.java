@@ -1,6 +1,7 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelValidationException;
@@ -10,19 +11,19 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class TailorableBpmnModelInstanceImplTest {
 
@@ -1006,5 +1007,30 @@ public class TailorableBpmnModelInstanceImplTest {
         modelInstance.move(targetStartingNode.getId(), targetEndingNode.getId(), afterOf.getId(), beforeOf.getId());
     }
 
+    @Test
+    public void testBpmntListToModelConversion() {
+        BpmnModelInstance modelInstance1 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        BpmnModelInstance modelInstance3 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
+
+        List<BpmntOperation> bpmntOperations = new ArrayList<BpmntOperation>();
+
+        Process baseProcess = BpmnElementSearcher.findFirstProcess(modelInstance1);
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelInstance1);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(modelInstance1);
+        FlowNode task1 = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
+        FlowNode task2 = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
+
+        bpmntOperations.add(new Extend(baseProcess.getId()));
+        bpmntOperations.add(new DeleteNode(2, startEvent.getId()));
+        bpmntOperations.add(new DeleteFragment(3, task1.getId(), task2.getId()));
+        bpmntOperations.add(new ReplaceFragmentWithNode(4, task1.getId(), task2.getId(), task1));
+        bpmntOperations.add(new ReplaceFragmentWithFragment(5, task1.getId(), task2.getId(), modelInstance3));
+        bpmntOperations.add(new MoveNode(6, task1.getId(), task2.getId(), endEvent.getId()));
+        bpmntOperations.add(new Parallelize(7, task1.getId(), task2.getId()));
+
+
+        System.out.println(Bpmn.convertToString(Bpmnt.convertBpmntFromListToModel(bpmntOperations)));
+    }
 
 }

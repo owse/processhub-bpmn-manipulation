@@ -3,6 +3,8 @@ package org.prisma.processhub.bpmn.manipulation.util;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.ModelInstance;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
@@ -198,4 +200,18 @@ public final class BpmnElementCreator {
         return newElement;
     }
 
+    // Convert a model to a subprocess
+    public static <T extends ModelInstance, E extends ModelElementInstance>
+                    void convertModelToSubprocess(E parentElement, T modelToConvert) {
+
+        // Create new FlowElement in model with same properties as element parameter
+        Process processToConvert = modelToConvert.getModelElementsByType(Process.class).iterator().next();
+
+        SubProcess subProcess =  parentElement.getModelInstance().newInstance(SubProcess.class);
+        subProcess.setId(processToConvert.getId());
+        subProcess.setName(processToConvert.getName());
+        parentElement.addChildElement(subProcess);
+
+        populateSubProcess(subProcess, BpmnElementSearcher.findStartEvent(processToConvert));
+    }
 }

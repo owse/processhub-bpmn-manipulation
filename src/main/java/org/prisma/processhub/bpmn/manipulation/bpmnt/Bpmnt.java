@@ -158,6 +158,8 @@ public class Bpmnt {
                 subProcess.setName(op.getName() + " " + op.getExecutionOrder());
                 process.addChildElement(subProcess);
 
+                subProcess.setExtensionElements(modelInstance.newInstance(ExtensionElements.class));
+
                 ModelElementInstance subProcessExt = subProcess
                                                         .getExtensionElements()
                                                         .addExtensionElement("http://www.processhub.net", op.getName());
@@ -176,9 +178,9 @@ public class Bpmnt {
                     BpmnElementCreator.add(subProcess, ((ReplaceNodeWithNode) op).getReplacingNode());
                 }
 
-                // TODO: add fragment
                 else if (op instanceof ReplaceNodeWithFragment) {
                     subProcessExt.setAttributeValue(REPLACED_NODE_ID, ((ReplaceNodeWithFragment) op).getReplacedNodeId());
+                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ReplaceNodeWithFragment) op).getReplacingFragment());
                 }
 
                 else if (op instanceof ReplaceFragmentWithNode) {
@@ -187,15 +189,15 @@ public class Bpmnt {
                     BpmnElementCreator.add(subProcess, ((ReplaceFragmentWithNode) op).getReplacingNode());
                 }
 
-                // TODO: add fragment
                 else if (op instanceof ReplaceFragmentWithFragment) {
                     subProcessExt.setAttributeValue(STARTING_NODE_ID, ((ReplaceFragmentWithFragment) op).getStartingNodeId());
                     subProcessExt.setAttributeValue(ENDING_NODE_ID, ((ReplaceFragmentWithFragment) op).getEndingNodeId());
+                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ReplaceFragmentWithFragment) op).getReplacingFragment());
                 }
 
-                // TODO: add fragment
                 else if (op instanceof Split) {
                     subProcessExt.setAttributeValue(TASK_ID, ((Split) op).getTaskId());
+                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((Split) op).getNewSubProcessModel());
                 }
 
                 else if (op instanceof InsertNode) {
@@ -204,10 +206,10 @@ public class Bpmnt {
                     BpmnElementCreator.add(subProcess, ((InsertNode) op).getFlowNodeToInsert());
                 }
 
-                // TODO: add fragment
                 else if (op instanceof InsertFragment) {
                     subProcessExt.setAttributeValue(AFTER_OF_ID, ((InsertFragment) op).getAfterOfId());
                     subProcessExt.setAttributeValue(BEFORE_OF_ID, ((InsertFragment) op).getBeforeOfId());
+                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((InsertFragment) op).getFragmentToInsert());
                 }
 
                 else if (op instanceof ConditionalInsertNode) {
@@ -218,13 +220,12 @@ public class Bpmnt {
                     BpmnElementCreator.add(subProcess, ((ConditionalInsertNode) op).getFlowNodeToInsert());
                 }
 
-                // TODO: add fragment
                 else if (op instanceof ConditionalInsertFragment) {
                     subProcessExt.setAttributeValue(AFTER_OF_ID, ((ConditionalInsertFragment) op).getAfterOfId());
                     subProcessExt.setAttributeValue(BEFORE_OF_ID, ((ConditionalInsertFragment) op).getBeforeOfId());
                     subProcessExt.setAttributeValue(CONDITION, ((ConditionalInsertFragment) op).getCondition());
                     subProcessExt.setAttributeValue(IN_LOOP, Boolean.toString(((ConditionalInsertFragment) op).isInLoop()));
-
+                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ConditionalInsertFragment) op).getFragmentToInsert());
                 }
             }
         }

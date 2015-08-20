@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_1" isExecutable="false">
-    <bpmn:startEvent id="StartEvent_1">
+  <bpmn:process id="Process_3" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_3">
       <bpmn:outgoing>SequenceFlow_1v05ioi</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:sequenceFlow id="SequenceFlow_1v05ioi" sourceRef="StartEvent_1" targetRef="ParallelGateway_1c6p3yf" />
+    <bpmn:sequenceFlow id="SequenceFlow_1v05ioi" sourceRef="StartEvent_3" targetRef="ParallelGateway_1c6p3yf" />
     <bpmn:userTask id="Task_1liqzit" name="Parallel task A">
       <bpmn:incoming>SequenceFlow_1twbeuc</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_026blmp</bpmn:outgoing>
@@ -34,7 +34,7 @@
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_3">
         <dc:Bounds x="178" y="225" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="151" y="261" width="90" height="20" />
