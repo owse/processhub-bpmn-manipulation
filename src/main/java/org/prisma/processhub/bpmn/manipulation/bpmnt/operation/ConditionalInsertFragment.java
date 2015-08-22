@@ -1,8 +1,13 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt.operation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.bpmn.instance.SubProcess;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
 
-public class ConditionalInsertFragment extends BpmntOperation {
+public class ConditionalInsertFragment extends BpmntInsertionDependentOperation {
     private String afterOfId;
     private String beforeOfId;
     private BpmnModelInstance fragmentToInsert;
@@ -38,5 +43,17 @@ public class ConditionalInsertFragment extends BpmntOperation {
 
     public boolean isInLoop() {
         return inLoop;
+    }
+
+    @Override
+    public void generateExtensionElement(Process process) {
+        SubProcess subProcess = generateSubProcessContainer(process);
+        ModelElementInstance subProcessExt = subProcess.getExtensionElements().getElementsQuery().singleResult();
+
+        subProcessExt.setAttributeValue(BpmntExtensionAttributes.AFTER_OF_ID, afterOfId);
+        subProcessExt.setAttributeValue(BpmntExtensionAttributes.BEFORE_OF_ID, beforeOfId);
+        subProcessExt.setAttributeValue(BpmntExtensionAttributes.CONDITION, condition);
+        subProcessExt.setAttributeValue(BpmntExtensionAttributes.IN_LOOP, Boolean.toString(inLoop));
+        BpmnElementCreator.convertModelToSubprocess(subProcess, fragmentToInsert);
     }
 }

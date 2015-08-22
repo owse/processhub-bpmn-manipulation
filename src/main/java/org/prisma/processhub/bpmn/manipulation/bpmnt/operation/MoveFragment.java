@@ -1,5 +1,10 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt.operation;
 
+import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
+
 public class MoveFragment extends BpmntOperation {
     private String startingNodeId;
     private String endingNodeId;
@@ -30,5 +35,17 @@ public class MoveFragment extends BpmntOperation {
 
     public String getNewPositionBeforeOfId() {
         return newPositionBeforeOfId;
+    }
+
+    @Override
+    public void generateExtensionElement(Process process) {
+        ModelElementInstance currentExtension = process.getExtensionElements()
+                .addExtensionElement(BpmntExtensionAttributes.DOMAIN, name);
+        currentExtension.setAttributeValue(BpmntExtensionAttributes.ORDER, Integer.toString(executionOrder));
+
+        currentExtension.setAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID, startingNodeId);
+        currentExtension.setAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID, endingNodeId);
+        currentExtension.setAttributeValue(BpmntExtensionAttributes.NEW_POSITION_AFTER_OF_ID, newPositionAfterOfId);
+        currentExtension.setAttributeValue(BpmntExtensionAttributes.NEW_POSITION_BEFORE_OF_ID, newPositionBeforeOfId);
     }
 }

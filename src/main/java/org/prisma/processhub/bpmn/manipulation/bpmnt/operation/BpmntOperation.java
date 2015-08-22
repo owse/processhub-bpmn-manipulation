@@ -1,6 +1,8 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt.operation;
 
-public class BpmntOperation {
+import org.camunda.bpm.model.bpmn.instance.Process;
+
+public abstract class BpmntOperation {
     protected int executionOrder;
     protected String name;
 
@@ -11,4 +13,7 @@ public class BpmntOperation {
     public String getName() {
         return name;
     }
+
+    public abstract void generateExtensionElement(Process process);
+
 }
