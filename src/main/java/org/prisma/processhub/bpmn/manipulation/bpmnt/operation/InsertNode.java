@@ -11,8 +11,7 @@ public class InsertNode extends BpmntInsertionDependentOperation {
     private String beforeOfId;
     private FlowNode flowNodeToInsert;
 
-    public InsertNode(int executionOrder, String afterOfId, String beforeOfId, FlowNode flowNodeToInsert) {
-        this.executionOrder = executionOrder;
+    public InsertNode(String afterOfId, String beforeOfId, FlowNode flowNodeToInsert) {
         this.afterOfId = afterOfId;
         this.beforeOfId = beforeOfId;
         this.flowNodeToInsert = flowNodeToInsert;

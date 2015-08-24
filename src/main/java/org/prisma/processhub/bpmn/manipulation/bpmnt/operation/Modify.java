@@ -9,8 +9,7 @@ public class Modify extends BpmntOperation {
     private String property;
     private String value;
 
-    public Modify(int executionOrder, String modifiedElementId, String property, String value) {
-        this.executionOrder = executionOrder;
+    public Modify(String modifiedElementId, String property, String value) {
         this.modifiedElementId = modifiedElementId;
         this.property = property;
         this.value = value;

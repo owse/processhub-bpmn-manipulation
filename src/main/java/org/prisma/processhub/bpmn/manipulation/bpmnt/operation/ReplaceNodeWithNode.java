@@ -10,8 +10,7 @@ public class ReplaceNodeWithNode extends BpmntInsertionDependentOperation {
     private String replacedNodeId;
     private FlowNode replacingNode;
 
-    public ReplaceNodeWithNode(int executionOrder, String replacedNodeId, FlowNode replacingNode) {
-        this.executionOrder = executionOrder;
+    public ReplaceNodeWithNode(String replacedNodeId, FlowNode replacingNode) {
         this.replacedNodeId = replacedNodeId;
         this.replacingNode = replacingNode;
         this.name = "ReplaceNodeWithNode";

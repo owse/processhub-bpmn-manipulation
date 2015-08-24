@@ -12,6 +12,7 @@ import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.BpmntOperation;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.impl.bpmnt.BpmntModelInstanceImpl;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
@@ -91,15 +92,13 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
 
         // Copy the tailorable model to a BPMNt model
         InputStream stream = new ByteArrayInputStream(TailorableBpmn.convertToString(this).getBytes(StandardCharsets.UTF_8));
-        BpmntModelInstance bpmntModelInstance = Bpmnt.readModelFromStream(stream);
+        BpmntModelInstanceImpl bpmntModelInstance = (BpmntModelInstanceImpl) Bpmnt.readModelFromStream(stream);
 
         Process process = BpmnElementSearcher.findFirstProcess(bpmntModelInstance);
 
-        // Instance and populate the list of operations
-        List<BpmntOperation> bpmntLog = new ArrayList<BpmntOperation>();
+        // Initialize the BPMNt log
         Extend ext = new Extend(process.getId());
-        bpmntLog.add(ext);
-        bpmntModelInstance.setBpmntLog(bpmntLog);
+        bpmntModelInstance.init(ext);
 
         process.setId(ext.getNewProcessId());
 

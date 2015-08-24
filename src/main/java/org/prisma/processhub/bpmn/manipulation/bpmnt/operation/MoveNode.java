@@ -9,8 +9,7 @@ public class MoveNode extends BpmntOperation {
     private String newPositionAfterOfId;
     private String newPositionBeforeOfId;
 
-    public MoveNode(int executionOrder, String nodeId, String newPositionAfterOfId, String newPositionBeforeOfId) {
-        this.executionOrder = executionOrder;
+    public MoveNode(String nodeId, String newPositionAfterOfId, String newPositionBeforeOfId) {
         this.nodeId = nodeId;
         this.newPositionAfterOfId = newPositionAfterOfId;
         this.newPositionBeforeOfId = newPositionBeforeOfId;

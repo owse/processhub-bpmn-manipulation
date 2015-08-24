@@ -8,8 +8,7 @@ public class Rename extends BpmntOperation {
     private String elementId;
     private String newName;
 
-    public Rename(int executionOrder, String elementId, String newName) {
-        this.executionOrder = executionOrder;
+    public Rename(String elementId, String newName) {
         this.elementId = elementId;
         this.newName = newName;
         this.name = "Rename";

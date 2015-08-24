@@ -8,8 +8,7 @@ public class Parallelize extends BpmntOperation {
     private String startingNodeId;
     private String endingNodeId;
 
-    public Parallelize(int executionOrder, String startingNodeId, String endingNodeId) {
-        this.executionOrder = executionOrder;
+    public Parallelize(String startingNodeId, String endingNodeId) {
         this.startingNodeId = startingNodeId;
         this.endingNodeId = startingNodeId;
         this.name = "Parallelize";

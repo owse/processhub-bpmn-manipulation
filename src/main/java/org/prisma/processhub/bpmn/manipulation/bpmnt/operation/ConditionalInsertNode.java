@@ -13,9 +13,8 @@ public class ConditionalInsertNode extends BpmntInsertionDependentOperation {
     String condition;
     boolean inLoop;
 
-    public ConditionalInsertNode(int executionOrder, String afterOfId, String beforeOfId,
+    public ConditionalInsertNode(String afterOfId, String beforeOfId,
                                  FlowNode flowNodeToInsert, String condition, boolean inLoop) {
-        this.executionOrder = executionOrder;
         this.afterOfId = afterOfId;
         this.beforeOfId = beforeOfId;
         this.flowNodeToInsert = flowNodeToInsert;

@@ -12,8 +12,7 @@ public class ReplaceFragmentWithFragment extends BpmntInsertionDependentOperatio
     private String endingNodeId;
     private BpmnModelInstance replacingFragment;
 
-    public ReplaceFragmentWithFragment(int executionOrder, String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) {
-        this.executionOrder = executionOrder;
+    public ReplaceFragmentWithFragment(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) {
         this.startingNodeId = startingNodeId;
         this.endingNodeId = endingNodeId;
         this.replacingFragment = replacingFragment;

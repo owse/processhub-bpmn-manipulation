@@ -14,6 +14,9 @@ public abstract class BpmntOperation {
         return name;
     }
 
-    public abstract void generateExtensionElement(Process process);
+    public void setExecutionOrder(int executionOrder) {
+        this.executionOrder = executionOrder;
+    }
 
+    public abstract void generateExtensionElement(Process process);
 }

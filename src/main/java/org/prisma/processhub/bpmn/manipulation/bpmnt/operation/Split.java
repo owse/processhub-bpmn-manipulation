@@ -11,8 +11,7 @@ public class Split extends BpmntInsertionDependentOperation {
     private String taskId;
     private BpmnModelInstance newSubProcessModel;
 
-    public Split(int executionOrder, String taskId, BpmnModelInstance newSubProcessModel) {
-        this.executionOrder = executionOrder;
+    public Split(String taskId, BpmnModelInstance newSubProcessModel) {
         this.taskId = taskId;
         this.newSubProcessModel = newSubProcessModel;
         this.name = "Split";

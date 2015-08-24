@@ -11,8 +11,7 @@ import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
 public class Contribute extends BpmntInsertionDependentOperation {
     private FlowElement newElement;
 
-    public Contribute(int executionOrder, FlowElement newElement) {
-        this.executionOrder = executionOrder;
+    public Contribute(FlowElement newElement) {
         this.newElement = newElement;
         name = "Contribute";
     }

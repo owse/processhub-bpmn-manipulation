@@ -11,9 +11,8 @@ public class MoveFragment extends BpmntOperation {
     private String newPositionAfterOfId;
     private String newPositionBeforeOfId;
 
-    public MoveFragment(int executionOrder, String startingNodeId, String endingNodeId,
-                            String newPositionAfterOfId, String newPositionBeforeOfId) {
-        this.executionOrder = executionOrder;
+    public MoveFragment(String startingNodeId, String endingNodeId,
+                        String newPositionAfterOfId, String newPositionBeforeOfId) {
         this.startingNodeId = startingNodeId;
         this.endingNodeId = endingNodeId;
         this.newPositionAfterOfId = newPositionAfterOfId;

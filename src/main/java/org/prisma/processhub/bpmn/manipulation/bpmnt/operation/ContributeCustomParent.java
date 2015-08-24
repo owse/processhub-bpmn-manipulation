@@ -10,8 +10,7 @@ public class ContributeCustomParent extends BpmntInsertionDependentOperation {
     private String parentElementId;
     private FlowElement newElement;
 
-    public ContributeCustomParent(int executionOrder, String parentElementId, FlowElement newElement) {
-        this.executionOrder = executionOrder;
+    public ContributeCustomParent(String parentElementId, FlowElement newElement) {
         this.newElement = newElement;
         this.parentElementId = parentElementId;
         this.name = "ContributeCustomParent";

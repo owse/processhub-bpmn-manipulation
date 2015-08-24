@@ -8,8 +8,7 @@ import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExt
 public class DeleteNode extends BpmntOperation {
     private String nodeId;
 
-    public DeleteNode(int executionOrder, String nodeId) {
-        this.executionOrder = executionOrder;
+    public DeleteNode(String nodeId) {
         this.nodeId = nodeId;
         this.name = "DeleteNode";
     }

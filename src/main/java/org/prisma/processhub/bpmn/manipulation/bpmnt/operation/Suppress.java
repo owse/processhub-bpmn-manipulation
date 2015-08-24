@@ -7,8 +7,7 @@ import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExt
 public class Suppress extends BpmntOperation {
     private String suppressedElementId;
 
-    public Suppress(int executionOrder, String suppressedElementId) {
-        this.executionOrder = executionOrder;
+    public Suppress(String suppressedElementId) {
         this.suppressedElementId = suppressedElementId;
         name = "Suppress";
     }

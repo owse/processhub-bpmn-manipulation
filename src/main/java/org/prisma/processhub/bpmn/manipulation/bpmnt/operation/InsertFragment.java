@@ -12,8 +12,7 @@ public class InsertFragment extends BpmntInsertionDependentOperation {
     private String beforeOfId;
     private BpmnModelInstance fragmentToInsert;
 
-    public InsertFragment(int executionOrder, String afterOfId, String beforeOfId, BpmnModelInstance fragmentToInsert) {
-        this.executionOrder = executionOrder;
+    public InsertFragment(String afterOfId, String beforeOfId, BpmnModelInstance fragmentToInsert) {
         this.afterOfId = afterOfId;
         this.beforeOfId = beforeOfId;
         this.fragmentToInsert = fragmentToInsert;

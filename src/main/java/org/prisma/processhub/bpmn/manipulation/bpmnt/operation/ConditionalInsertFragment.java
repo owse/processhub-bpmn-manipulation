@@ -14,9 +14,8 @@ public class ConditionalInsertFragment extends BpmntInsertionDependentOperation 
     String condition;
     boolean inLoop;
 
-    public ConditionalInsertFragment(int executionOrder, String afterOfId, String BeforeOfId,
+    public ConditionalInsertFragment(String afterOfId, String BeforeOfId,
                                      BpmnModelInstance fragmentToInsert, String condition, boolean inLoop) {
-        this.executionOrder = executionOrder;
         this.afterOfId = afterOfId;
         this.beforeOfId = BeforeOfId;
         this.fragmentToInsert = fragmentToInsert;
