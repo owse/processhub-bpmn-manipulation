@@ -3,9 +3,7 @@ package org.prisma.processhub.bpmn.manipulation.composition;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
-import org.camunda.bpm.model.bpmn.instance.Process;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementRemover;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.util.*;
@@ -27,7 +25,7 @@ public class BpmnModelComposer
         }
 
         if (modelsToJoin.length == 1) {
-            BpmnElementCreator.generateUniqueIds(modelsToJoin[0]);
+            BpmnElementHandler.generateUniqueIds(modelsToJoin[0]);
         }
 
 
@@ -38,21 +36,21 @@ public class BpmnModelComposer
             if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
                 return null;
             }
-            BpmnElementCreator.generateUniqueIds(mi);
+            BpmnElementHandler.generateUniqueIds(mi);
         }
 
         BpmnModelInstance resultModel = modelsToJoin[0];
         FlowNode lastFlowNodeResult = BpmnElementSearcher.findFlowNodeBeforeEndEvent(resultModel);
-        BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+        BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
 
         for (int i = 1; i < modelsToJoin.length; i++) {
             StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelsToJoin[i]);
             FlowNode currentFirstFlowNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelsToJoin[i]);
-            BpmnElementRemover.removeFlowNode(modelsToJoin[i], startEvent.getId());
-            BpmnElementCreator.appendTo(lastFlowNodeResult, currentFirstFlowNode);
+            BpmnElementHandler.delete(modelsToJoin[i], startEvent.getId());
+            BpmnElementHandler.appendTo(lastFlowNodeResult, currentFirstFlowNode);
 
             if (i+1 < modelsToJoin.length) {
-                BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+                BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
             }
         }
 
@@ -66,7 +64,7 @@ public class BpmnModelComposer
         }
 
         if (modelsToJoin.size() == 1) {
-            BpmnElementCreator.generateUniqueIds(modelsToJoin.iterator().next());
+            BpmnElementHandler.generateUniqueIds(modelsToJoin.iterator().next());
         }
 
         List<BpmnModelInstance> uniqueModelsToJoin = new ArrayList<BpmnModelInstance>();
@@ -78,7 +76,7 @@ public class BpmnModelComposer
             if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
                 return null;
             }
-            BpmnElementCreator.generateUniqueIds(mi);
+            BpmnElementHandler.generateUniqueIds(mi);
         }
 
         Iterator<BpmnModelInstance> modelIt = modelsToJoin.iterator();
@@ -86,19 +84,19 @@ public class BpmnModelComposer
 
         BpmnModelInstance resultModel = modelIt.next();
         FlowNode lastFlowNodeResult = BpmnElementSearcher.findFlowNodeBeforeEndEvent(resultModel);
-        BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+        BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
 
         while (modelIt.hasNext()) {
 
             BpmnModelInstance currentModel = modelIt.next();
             StartEvent startEvent = BpmnElementSearcher.findStartEvent(currentModel);
             FlowNode firstFlowNodeCurrent = BpmnElementSearcher.findFlowNodeAfterStartEvent(currentModel);
-            BpmnElementRemover.removeFlowNode(currentModel, startEvent.getId());
+            BpmnElementHandler.delete(currentModel, startEvent.getId());
 
-            BpmnElementCreator.appendTo(lastFlowNodeResult, firstFlowNodeCurrent);
+            BpmnElementHandler.appendTo(lastFlowNodeResult, firstFlowNodeCurrent);
 
             if (modelIt.hasNext()) {
-                BpmnElementRemover.removeFlowNode(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+                BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
             }
         }
         return resultModel;
@@ -111,7 +109,7 @@ public class BpmnModelComposer
         }
 
         if (modelsToJoin.length == 1) {
-            BpmnElementCreator.generateUniqueIds(modelsToJoin[0]);
+            BpmnElementHandler.generateUniqueIds(modelsToJoin[0]);
             return modelsToJoin[0];
         }
 
@@ -122,7 +120,7 @@ public class BpmnModelComposer
             if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
                 return null;
             }
-            BpmnElementCreator.generateUniqueIds(mi);
+            BpmnElementHandler.generateUniqueIds(mi);
         }
 
         // Select the base model
@@ -140,11 +138,11 @@ public class BpmnModelComposer
         // If not, create a parallel gateway after the start event
         else {
             BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
-            BpmnElementCreator.generateUniqueIds(tempModel);
+            BpmnElementHandler.generateUniqueIds(tempModel);
             splitGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, splitGateway.getIncoming());
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, splitGateway.getOutgoing());
-            BpmnElementCreator.insertFlowNodeBetweenFlowNodes(resultModel, splitGateway, startEvent.getId(), firstFlowNodeResult.getId());
+            BpmnElementHandler.suppress(tempModel, splitGateway.getIncoming());
+            BpmnElementHandler.suppress(tempModel, splitGateway.getOutgoing());
+            BpmnElementHandler.insertFlowNodeBetweenFlowNodes(resultModel, splitGateway, startEvent.getId(), firstFlowNodeResult.getId());
             splitGateway = resultModel.getModelElementById(splitGateway.getId());
         }
 
@@ -161,11 +159,11 @@ public class BpmnModelComposer
         // If not, create a parallel gateway before the end event
         else {
             BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
-            BpmnElementCreator.generateUniqueIds(tempModel);
+            BpmnElementHandler.generateUniqueIds(tempModel);
             joinGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, joinGateway.getIncoming());
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, joinGateway.getOutgoing());
-            BpmnElementCreator.insertFlowNodeBetweenFlowNodes(resultModel, joinGateway, lastFlowNodeResult.getId(), endEvent.getId());
+            BpmnElementHandler.suppress(tempModel, joinGateway.getIncoming());
+            BpmnElementHandler.suppress(tempModel, joinGateway.getOutgoing());
+            BpmnElementHandler.insertFlowNodeBetweenFlowNodes(resultModel, joinGateway, lastFlowNodeResult.getId(), endEvent.getId());
             joinGateway = resultModel.getModelElementById(joinGateway.getId());
         }
 
@@ -178,8 +176,8 @@ public class BpmnModelComposer
             FlowNode flowNodeAfterStart = BpmnElementSearcher.findFlowNodeAfterStartEvent(mi);
             FlowNode flowNodeBeforeEnd = BpmnElementSearcher.findFlowNodeBeforeEndEvent(mi);
 
-            BpmnElementRemover.removeFlowNode(mi, BpmnElementSearcher.findStartEvent(mi).getId());
-            BpmnElementRemover.removeFlowNode(mi, BpmnElementSearcher.findEndEvent(mi).getId());
+            BpmnElementHandler.delete(mi, BpmnElementSearcher.findStartEvent(mi).getId());
+            BpmnElementHandler.delete(mi, BpmnElementSearcher.findEndEvent(mi).getId());
 
             if (flowNodeAfterStart instanceof ParallelGateway) {
                 Collection<SequenceFlow> sequenceFlows = flowNodeAfterStart.getOutgoing();
@@ -188,7 +186,7 @@ public class BpmnModelComposer
                     afterStartNodes.add(sf.getTarget());
                 }
 
-                BpmnElementRemover.removeFlowNode(mi, flowNodeAfterStart.getId());
+                BpmnElementHandler.delete(mi, flowNodeAfterStart.getId());
             }
             else {
                 afterStartNodes.add(flowNodeAfterStart);
@@ -201,7 +199,7 @@ public class BpmnModelComposer
                     beforeEndNodes.add(sf.getSource());
                 }
 
-                BpmnElementRemover.removeFlowNode(mi, flowNodeBeforeEnd.getId());
+                BpmnElementHandler.delete(mi, flowNodeBeforeEnd.getId());
             }
             else {
                 beforeEndNodes.add(flowNodeBeforeEnd);
@@ -209,13 +207,13 @@ public class BpmnModelComposer
 
             // Connects the processes to the split gateway
             for (FlowNode fn: afterStartNodes) {
-                BpmnElementCreator.appendTo(splitGateway, fn);
+                BpmnElementHandler.appendTo(splitGateway, fn);
             }
 
             // Connects the last nodes to the join gateway
             for (FlowNode fn: beforeEndNodes) {
                 FlowNode ln = resultModel.getModelElementById(fn.getId());
-                BpmnElementCreator.appendTo(ln, joinGateway);
+                BpmnElementHandler.appendTo(ln, joinGateway);
             }
         }
 
@@ -229,7 +227,7 @@ public class BpmnModelComposer
 
         if (modelsToJoin.size() == 1) {
             BpmnModelInstance modelInstance = modelsToJoin.iterator().next();
-            BpmnElementCreator.generateUniqueIds(modelInstance);
+            BpmnElementHandler.generateUniqueIds(modelInstance);
             return modelInstance;
         }
 
@@ -240,7 +238,7 @@ public class BpmnModelComposer
             if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
                 return null;
             }
-            BpmnElementCreator.generateUniqueIds(mi);
+            BpmnElementHandler.generateUniqueIds(mi);
         }
 
         // Select the base model
@@ -259,11 +257,11 @@ public class BpmnModelComposer
         // If not, create a parallel gateway after the start event
         else {
             BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
-            BpmnElementCreator.generateUniqueIds(tempModel);
+            BpmnElementHandler.generateUniqueIds(tempModel);
             splitGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, splitGateway.getIncoming());
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, splitGateway.getOutgoing());
-            BpmnElementCreator.insertFlowNodeBetweenFlowNodes(resultModel, splitGateway, startEvent.getId(), firstFlowNodeResult.getId());
+            BpmnElementHandler.suppress(tempModel, splitGateway.getIncoming());
+            BpmnElementHandler.suppress(tempModel, splitGateway.getOutgoing());
+            BpmnElementHandler.insertFlowNodeBetweenFlowNodes(resultModel, splitGateway, startEvent.getId(), firstFlowNodeResult.getId());
             splitGateway = resultModel.getModelElementById(splitGateway.getId());
         }
 
@@ -280,11 +278,11 @@ public class BpmnModelComposer
         // If not, create a parallel gateway before the end event
         else {
             BpmnModelInstance tempModel = Bpmn.createProcess().startEvent().parallelGateway().endEvent().done();
-            BpmnElementCreator.generateUniqueIds(tempModel);
+            BpmnElementHandler.generateUniqueIds(tempModel);
             joinGateway = tempModel.getModelElementsByType(ParallelGateway.class).iterator().next();
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, joinGateway.getIncoming());
-            BpmnElementRemover.removeAllSequenceFlows(tempModel, joinGateway.getOutgoing());
-            BpmnElementCreator.insertFlowNodeBetweenFlowNodes(resultModel, joinGateway, lastFlowNodeResult.getId(), endEvent.getId());
+            BpmnElementHandler.suppress(tempModel, joinGateway.getIncoming());
+            BpmnElementHandler.suppress(tempModel, joinGateway.getOutgoing());
+            BpmnElementHandler.insertFlowNodeBetweenFlowNodes(resultModel, joinGateway, lastFlowNodeResult.getId(), endEvent.getId());
             joinGateway = resultModel.getModelElementById(joinGateway.getId());
         }
 
@@ -298,8 +296,8 @@ public class BpmnModelComposer
             FlowNode flowNodeAfterStart = BpmnElementSearcher.findFlowNodeAfterStartEvent(mi);
             FlowNode flowNodeBeforeEnd = BpmnElementSearcher.findFlowNodeBeforeEndEvent(mi);
 
-            BpmnElementRemover.removeFlowNode(mi, BpmnElementSearcher.findStartEvent(mi).getId());
-            BpmnElementRemover.removeFlowNode(mi, BpmnElementSearcher.findEndEvent(mi).getId());
+            BpmnElementHandler.delete(mi, BpmnElementSearcher.findStartEvent(mi).getId());
+            BpmnElementHandler.delete(mi, BpmnElementSearcher.findEndEvent(mi).getId());
 
             if (flowNodeAfterStart instanceof ParallelGateway) {
                 Collection<SequenceFlow> sequenceFlows = flowNodeAfterStart.getOutgoing();
@@ -308,7 +306,7 @@ public class BpmnModelComposer
                     afterStartNodes.add(sf.getTarget());
                 }
 
-                BpmnElementRemover.removeFlowNode(mi, flowNodeAfterStart.getId());
+                BpmnElementHandler.delete(mi, flowNodeAfterStart.getId());
             }
             else {
                 afterStartNodes.add(flowNodeAfterStart);
@@ -321,7 +319,7 @@ public class BpmnModelComposer
                     beforeEndNodes.add(sf.getSource());
                 }
 
-                BpmnElementRemover.removeFlowNode(mi, flowNodeBeforeEnd.getId());
+                BpmnElementHandler.delete(mi, flowNodeBeforeEnd.getId());
             }
             else {
                 beforeEndNodes.add(flowNodeBeforeEnd);
@@ -329,13 +327,13 @@ public class BpmnModelComposer
 
             // Connects the processes to the split gateway
             for (FlowNode fn: afterStartNodes) {
-                BpmnElementCreator.appendTo(splitGateway, fn);
+                BpmnElementHandler.appendTo(splitGateway, fn);
             }
 
             // Connects the last nodes to the join gateway
             for (FlowNode fn: beforeEndNodes) {
                 FlowNode ln = resultModel.getModelElementById(fn.getId());
-                BpmnElementCreator.appendTo(ln, joinGateway);
+                BpmnElementHandler.appendTo(ln, joinGateway);
             }
         }
 

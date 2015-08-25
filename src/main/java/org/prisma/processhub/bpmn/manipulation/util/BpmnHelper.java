@@ -1,5 +1,7 @@
 package org.prisma.processhub.bpmn.manipulation.util;
 
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.instance.FlowElement;
 import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 
@@ -18,6 +20,12 @@ public final class BpmnHelper {
     public static void checkInvalidArgument(boolean condition, String message) {
         if (condition) {
             throw new IllegalArgumentException(message);
+        }
+    }
+
+    public static void checkIllegalState(boolean condition, String message) {
+        if (condition) {
+            throw new IllegalStateException(message);
         }
     }
 

@@ -2,7 +2,6 @@ package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.instance.*;
-import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelValidationException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -10,21 +9,19 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.operation.Extend;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import static org.junit.Assert.*;
 
-public class TailorableBpmnModelInstanceImplTest {
+public class TailorableBpmnModelInstanceTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -39,12 +36,12 @@ public class TailorableBpmnModelInstanceImplTest {
     // Load diagrams before each test
     @Before
     public void loadDiagrams() {
-        simpleModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
-        simpleModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
-        parallelModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
-        parallelModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
-        subprocessModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
-        fragmentModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceImplTest.class.getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
+        simpleModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        simpleModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
+        parallelModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
+        parallelModel2 = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+        subprocessModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("subprocess_diagram.bpmn"));
+        fragmentModel = TailorableBpmn.readModelFromStream(TailorableBpmnModelInstanceTest.class.getClassLoader().getResourceAsStream("test_fragment_validation_diagram.bpmn"));
     }
 
     // Tests naming convention: methodName_StateUnderTest_ExpectedBehavior
@@ -66,17 +63,18 @@ public class TailorableBpmnModelInstanceImplTest {
         );
 
         // Check if only one Extend operation object was added to the BPMNt log
-        assert(bpmntModelInstance.getBpmntLog().iterator().next() instanceof Extend);
+        assert(bpmntModelInstance.getBpmntLog().get(1) instanceof Extend);
         assertEquals(1, bpmntModelInstance.getBpmntLog().size());
 
         Collection<FlowElement> baseFlowElements = simpleModel.getModelElementsByType(FlowElement.class);
 
         // Verify that every flow element was successfully copied to the bpmntModelInstance
         for (FlowElement fe: baseFlowElements) {
-            assert(bpmntModelInstance.contains(fe));
+            assert(BpmnElementHandler.contains(bpmntModelInstance, fe));
         }
 
     }
+
 
     // Test cases for the 'contribute' method
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -116,6 +114,20 @@ public class TailorableBpmnModelInstanceImplTest {
         assertEquals(newElement.getName(), foreignElement.getName());
 
         // Verify model consistency with Camunda API
+        TailorableBpmn.validateModel(simpleModel);
+    }
+
+    @Test
+    public void contribute_SequenceFlow_ExceptionThrown() {
+        // Create sequence flow
+        FlowElement newElement = simpleModel.newInstance(SequenceFlow.class);
+        newElement.setAttributeValue("id", "my_id", true);
+        // Adding a sequence flow operation gives no error
+        simpleModel.contribute(BpmnElementSearcher.findFirstProcess(simpleModel), newElement);
+
+        // Since a sequence flow without source and target node makes the model invalid
+        // Test should fail when trying to validate model
+        exception.expect(ModelValidationException.class);
         TailorableBpmn.validateModel(simpleModel);
     }
 
@@ -434,6 +446,7 @@ public class TailorableBpmnModelInstanceImplTest {
 
         FlowNode previousNode = replacedTask1.getPreviousNodes().singleResult();
         FlowNode succeedingNode = replacedTask2.getSucceedingNodes().singleResult();
+
 
         modelInstance1.replace(replacedTask1.getId(), replacedTask2.getId(), modelInstance2);
 
