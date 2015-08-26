@@ -15,6 +15,7 @@ import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
@@ -30,6 +31,10 @@ public class BpmntModelInstanceImplTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
+    private TailorableBpmnModelInstance tailorableSimpleModel;
+    private TailorableBpmnModelInstance tailorableParallelModel;
+    private TailorableBpmnModelInstance tailorableParallelModel2;
+
     private BpmntModelInstance simpleModel;
     private BpmntModelInstance simpleModel2;
     private BpmntModelInstance parallelModel;
@@ -40,6 +45,10 @@ public class BpmntModelInstanceImplTest {
     // Load diagrams before each test
     @Before
     public void loadDiagrams() {
+        tailorableSimpleModel = TailorableBpmn.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        tailorableParallelModel = TailorableBpmn.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
+        tailorableParallelModel2 = TailorableBpmn.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram2.bpmn"));
+
         simpleModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
         simpleModel2 = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
         parallelModel = Bpmnt.readModelFromStream(BpmntModelInstanceImplTest.class.getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
@@ -55,7 +64,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void extend_ModelExtended_BpmntModelCreated() {
-        BpmntModelInstance bpmntModelInstance = simpleModel.extend();
+        BpmntModelInstance bpmntModelInstance = tailorableSimpleModel.extend();
         System.out.println(bpmntModelInstance.getBpmntLog());
 
         // Verify model consistency with Camunda API
@@ -124,7 +133,7 @@ public class BpmntModelInstanceImplTest {
     // TODO: uncomment assertions after code refactor
     @Test
     public void contribute_CreatedElement_ElementAdded() {
-        BpmntModelInstance modelInstance = simpleModel.extend();
+        BpmntModelInstance modelInstance = tailorableSimpleModel.extend();
 
         assert modelInstance.getBpmntLog().iterator().next() instanceof Extend;
         assertEquals(1, modelInstance.getBpmntLog().size());
@@ -189,7 +198,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void suppress_ElementFromModel_ElementRemoved() {
-        BpmntModelInstance modelInstance = simpleModel.extend();
+        BpmntModelInstance modelInstance = tailorableSimpleModel.extend();
 
         // Get the first flow element
         FlowElement flowElementToRemove = modelInstance.getModelElementsByType(FlowElement.class).iterator().next();
@@ -240,7 +249,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void modify_ExistingProperty_PropertyModified() {
-        BpmntModelInstance modelInstance = simpleModel.extend();
+        BpmntModelInstance modelInstance = tailorableSimpleModel.extend();
 
         FlowElement element = modelInstance.getModelElementsByType(FlowElement.class).iterator().next();
         String property = "name";
@@ -284,7 +293,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void rename_ElementFromModel_ElementRenamed() {
-        BpmntModelInstance modelInstance = simpleModel.extend();
+        BpmntModelInstance modelInstance = tailorableSimpleModel.extend();
 
         // Select a flow node to rename
         FlowNode flowNodeToRename = modelInstance.getModelElementsByType(FlowNode.class).iterator().next();
@@ -328,7 +337,7 @@ public class BpmntModelInstanceImplTest {
     // TODO: uncomment assertions after code refactor
     @Test
     public void delete_SingleElement_ElementRemoved() {
-        BpmntModelInstance modelInstance = parallelModel.extend();
+        BpmntModelInstance modelInstance = tailorableParallelModel.extend();
 
         // Load data
         FlowNode flowNodeToDelete = modelInstance.getModelElementsByType(Task.class).iterator().next();
@@ -366,7 +375,7 @@ public class BpmntModelInstanceImplTest {
     // TODO: uncomment assertions after code refactor
     @Test
     public void delete_ValidFragment_FragmentRemoved() {
-        BpmntModelInstance modelInstance = parallelModel2.extend();
+        BpmntModelInstance modelInstance = tailorableParallelModel2.extend();
 
         // Loading data
         ParallelGateway splitGateway = modelInstance.getModelElementById("ParallelGateway_1c6p3yf");
@@ -599,7 +608,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void testParallelize() {
-        BpmntModelInstance modelInstance1 = simpleModel.extend();
+        BpmntModelInstance modelInstance1 = tailorableSimpleModel.extend();
 
         FlowNode startingNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelInstance1);
         FlowNode endingNode = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance1);
@@ -1091,7 +1100,7 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void testBpmntListToModelConversion2() {
-        BpmntModelInstance modelInstance1 = Bpmnt.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
+        TailorableBpmnModelInstance modelInstance1 = TailorableBpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram.bpmn"));
         BpmnModelInstance modelInstance2 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("simple_diagram2.bpmn"));
         BpmnModelInstance modelInstance3 = Bpmn.readModelFromStream(getClass().getClassLoader().getResourceAsStream("parallel_diagram.bpmn"));
 
