@@ -1,14 +1,17 @@
-package org.prisma.processhub.bpmn.manipulation.operation;
+package org.prisma.processhub.bpmn.manipulation.bpmnt.operation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.ModelInstance;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnHelper;
 
 import java.util.Date;
 
-public class Extend extends BpmnOperation {
+public class Extend extends BpmntOperation {
     private String baseProcessId;
     private String newProcessId;
     public static final String ID_PREFIX = "BPMNt_";
@@ -36,6 +39,18 @@ public class Extend extends BpmnOperation {
                                         "Can't extend process in modelInstance. Process id doesn't match baseProcessId");
         // Set the new id for the extended process
         process.setId(newProcessId);
+    }
+
+    @Override
+    public void generateExtensionElement(Process process) {
+        if (process.getExtensionElements() == null) {
+            ModelInstance modelInstance = process.getModelInstance();
+            process.setExtensionElements(modelInstance.newInstance(ExtensionElements.class));
+
+            ModelElementInstance processExtension = initExtensionElement(process);
+            processExtension.setAttributeValue(BpmntExtensionAttributes.BASE_PROCESS_ID, baseProcessId);
+            processExtension.setAttributeValue(BpmntExtensionAttributes.NEW_PROCESS_ID, newProcessId);
+        }
     }
 
     public String getBaseProcessId() {

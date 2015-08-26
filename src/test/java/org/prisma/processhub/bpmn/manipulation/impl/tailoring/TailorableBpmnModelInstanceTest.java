@@ -1,7 +1,9 @@
 package org.prisma.processhub.bpmn.manipulation.impl.tailoring;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.ModelValidationException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -9,7 +11,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
@@ -17,7 +19,9 @@ import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnFragmentHandler;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -63,7 +67,7 @@ public class TailorableBpmnModelInstanceTest {
         );
 
         // Check if only one Extend operation object was added to the BPMNt log
-        assert(bpmntModelInstance.getBpmntLog().get(1) instanceof Extend);
+        assert(bpmntModelInstance.getBpmntLog().iterator().next() instanceof Extend);
         assertEquals(1, bpmntModelInstance.getBpmntLog().size());
 
         Collection<FlowElement> baseFlowElements = simpleModel.getModelElementsByType(FlowElement.class);
@@ -1018,6 +1022,5 @@ public class TailorableBpmnModelInstanceTest {
         // Moving the parallel fragment to the start of the process
         modelInstance.move(targetStartingNode.getId(), targetEndingNode.getId(), afterOf.getId(), beforeOf.getId());
     }
-
 
 }

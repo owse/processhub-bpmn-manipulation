@@ -10,7 +10,7 @@ import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.operation.*;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
 import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.*;
@@ -36,11 +36,11 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
         // Get firs process to set a new id for it, different than the base process id
         Process process = BpmnElementSearcher.findFirstProcess(bpmntModelInstance);
 
-        // Instance and populate the list of operations with the extend operator
-        Map<Integer, BpmnOperation> bpmntLog = new LinkedHashMap<Integer, BpmnOperation>();
+        // Initialize the BPMNt log
         Extend ext = new Extend(process.getId());
-        bpmntLog.put(1, ext);
-        bpmntModelInstance.setBpmntLog(bpmntLog);
+        bpmntModelInstance.init(ext);
+
+        // Set the new id for the extended process on the new model
         process.setId(ext.getNewProcessId());
 
         return bpmntModelInstance;
@@ -64,12 +64,17 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     // Contribute
+
+    // O contribute deve fazer a copia na instanciacao do operador, na execução ou na geracao do extension?
     public <T extends FlowElement, E extends ModelElementInstance> void contribute(E parentElement, T element) {
-        ContributeToParent operation = new ContributeToParent(parentElement, element);
+        String parentElementId = (parentElement == null) ? null : parentElement.getAttributeValue("id");
+        element = BpmnElementHandler.copyElement(element);
+        ContributeToParent operation = new ContributeToParent(parentElementId, element);
         operation.execute(this);
     }
 
     public <T extends FlowElement> void contribute(T element) {
+        element = BpmnElementHandler.copyElement(element);
         Contribute operation = new Contribute(element);
         operation.execute(this);
     }
@@ -139,8 +144,9 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     }
 
     // Replace
-    public void replace(String targetNodeId, FlowNode flowNode) {
-        ReplaceNodeWithNode operation = new ReplaceNodeWithNode(targetNodeId, flowNode);
+    public void replace(String targetNodeId, FlowNode replacingNode) {
+        replacingNode = BpmnElementHandler.copyElement(replacingNode);
+        ReplaceNodeWithNode operation = new ReplaceNodeWithNode(targetNodeId, replacingNode);
         operation.execute(this);
     }
 
@@ -150,6 +156,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     }
 
     public void replace(String targetNodeId, BpmnModelInstance replacingFragment) {
+        replacingFragment = BpmnElementHandler.copyModelInstance(replacingFragment);
         ReplaceNodeWithFragment operation = new ReplaceNodeWithFragment(targetNodeId, replacingFragment);
         operation.execute(this);
     }
@@ -160,6 +167,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     }
 
     public void replace(String startingNodeId, String endingNodeId, FlowNode replacingNode) {
+        replacingNode = BpmnElementHandler.copyElement(replacingNode);
         ReplaceFragmentWithNode operation = new ReplaceFragmentWithNode(startingNodeId, endingNodeId, replacingNode);
         operation.execute(this);
     }
@@ -171,6 +179,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     }
 
     public void replace(String startingNodeId, String endingNodeId, BpmnModelInstance replacingFragment) {
+        replacingFragment = BpmnElementHandler.copyModelInstance(replacingFragment);
         ReplaceFragmentWithFragment operation = new ReplaceFragmentWithFragment(startingNodeId, endingNodeId, replacingFragment);
         operation.execute(this);
     }
@@ -221,6 +230,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     // Split
     public void split(Task targetTask, BpmnModelInstance newSubProcessModel) {
         String taskId = (targetTask == null) ? null : targetTask.getId();
+        newSubProcessModel = BpmnElementHandler.copyModelInstance(newSubProcessModel);
         Split operation = new Split(taskId, newSubProcessModel);
         operation.execute(this);
     }
@@ -230,6 +240,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     public void insert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert) {
         String afterOfId = (afterOf == null) ? null : afterOf.getId();
         String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
+        flowNodeToInsert = BpmnElementHandler.copyElement(flowNodeToInsert);
         InsertNode operation = new InsertNode(afterOfId, beforeOfId, flowNodeToInsert);
         operation.execute(this);
     }
@@ -237,6 +248,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     public void insert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert) {
         String afterOfId = (afterOf == null) ? null : afterOf.getId();
         String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
+        fragmentToInsert = BpmnElementHandler.copyModelInstance(fragmentToInsert);
         InsertFragment operation = new InsertFragment(afterOfId, beforeOfId, fragmentToInsert);
         operation.execute(this);
     }
@@ -249,6 +261,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, FlowNode flowNodeToInsert, String condition, boolean inLoop) {
         String afterOfId = (afterOf == null) ? null : afterOf.getId();
         String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
+        flowNodeToInsert = BpmnElementHandler.copyElement(flowNodeToInsert);
         ConditionalInsertNode operation = new ConditionalInsertNode(afterOfId, beforeOfId, flowNodeToInsert, condition, inLoop);
         operation.execute(this);
     }
@@ -256,6 +269,7 @@ public class TailorableBpmnModelInstanceImpl extends BpmnModelInstanceImpl imple
     public void conditionalInsert(FlowNode afterOf, FlowNode beforeOf, BpmnModelInstance fragmentToInsert,  String condition, boolean inLoop) {
         String afterOfId = (afterOf == null) ? null : afterOf.getId();
         String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
+        fragmentToInsert = BpmnElementHandler.copyModelInstance(fragmentToInsert);
         ConditionalInsertFragment operation = new ConditionalInsertFragment(afterOfId, beforeOfId, fragmentToInsert, condition, inLoop);
         operation.execute(this);
     }

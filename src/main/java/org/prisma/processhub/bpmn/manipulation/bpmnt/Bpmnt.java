@@ -1,6 +1,8 @@
 package org.prisma.processhub.bpmn.manipulation.bpmnt;
 
+import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelException;
+import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.ProcessBuilder;
 import org.camunda.bpm.model.bpmn.impl.instance.*;
 import org.camunda.bpm.model.bpmn.impl.instance.ExtensionImpl;
@@ -18,58 +20,52 @@ import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.instance.ModelElementInstanceImpl;
 import org.camunda.bpm.model.xml.impl.util.IoUtil;
 import org.camunda.bpm.model.xml.impl.util.ModelUtil;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.BpmntOperation;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.io.*;
+import java.util.List;
 
 
 public class Bpmnt {
-
-    // BPMNt extension attributes
-    private static final String OPERATION = "operation";
-    private static final String ORDER = "order";
-    private static final String AFTER_OF_ID = "afterOfId";
-    private static final String BEFORE_OF_ID = "beforeOfId";
-    //final BpmnModelInstance fragmentToInsert;
-    private static final String CONDITION = "condition";
-    private static final String IN_LOOP = "inLoop";
-    //private FlowNode flowNodeToInsert;
-    // FlowElement newFlowElement
-    private static final String PARENT_ELEMENT_ID = "parentId" ;
-    // FlowElement newFlowElement
-    private static final String STARTING_NODE_ID = "startingNodeId";
-    private static final String ENDING_NODE_ID = "endingNodeId";
-    private static final String NODE_ID = "nodeId";
-    private static final String BASE_PROCESS_ID = "baseProcessId";
-    private static final String NEW_PROCESS_ID = "newProcessId";
-    private static final String MODIFIED_ELEMENT_ID = "modifiedId";
-    private static final String PROPERTY = "property";
-    private static final String VALUE = "value";
-    private static final String NEW_POSITION_AFTER_OF_ID = AFTER_OF_ID;
-    private static final String NEW_POSITION_BEFORE_OF_ID = BEFORE_OF_ID;
-    private static final String ELEMENT_ID = "elementId";
-    private static final String NEW_NAME = "newName";
-    // private BpmnModelInstance replacingFragment;
-    // private FlowNode replacingNode;
-    private static final String REPLACE_NODE_ID = "replacedNodeId";
-    private static final String TASK_ID = "taskId";
-    //final BpmnModelInstance newSubProcessModel;
-    private static final String SUPPRESSED_ELEMENT_ID = ELEMENT_ID;
-    private static final String SUPPRESSED_ELEMENTS_IDS = "elementId";
-
     public static Bpmnt INSTANCE = new Bpmnt();
     private BpmntParser bpmntParser = new BpmntParser();
     private final ModelBuilder bpmntModelBuilder = ModelBuilder.createInstance("Tailorable BPMN Model");
     private Model BpmntModel;
 
-    // PASSO A PASSO
-    // Operacao para extrair de arquivo operacoes
+    public static BpmnModelInstance convertBpmntFromListToModel (List<BpmntOperation> bpmntList) {
 
-    // Carrega arquivo com modelo
+        Extend extend = null;
 
-//    public static Collection<BpmntOperation> extractOperationsFromFile(File file) {
-//        BpmntModelInstance modelInstance = readModelFromFile(file);
-//        return null;
-//    }
+        for (BpmntOperation op: bpmntList) {
+            if (op instanceof Extend) {
+                extend = (Extend) op;
+                break;
+            }
+        }
+
+        if (extend == null) {
+            return null;
+        }
+
+        BpmnModelInstance modelInstance =
+                Bpmn
+                        .createProcess(extend.getNewProcessId())
+                        .name(BpmntExtensionAttributes.MODIFIED_PROCESS_ID_PREFIX + extend.getBaseProcessId())
+                        .done();
+
+        Process process = BpmnElementSearcher.findFirstProcess(modelInstance);
+
+        // Add extensions
+        for (BpmntOperation op: bpmntList) {
+            op.generateExtensionElement(process);
+        }
+
+        return modelInstance;
+    }
+
 
     public static BpmntModelInstance readModelFromFile(File file) {
         return INSTANCE.doReadModelFromFile(file);

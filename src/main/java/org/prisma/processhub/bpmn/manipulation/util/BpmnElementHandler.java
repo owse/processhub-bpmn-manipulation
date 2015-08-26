@@ -4,6 +4,7 @@ import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
+import org.camunda.bpm.model.xml.ModelInstance;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
@@ -49,6 +50,14 @@ public final class BpmnElementHandler {
     // Add a new single element to the first process in modelInstance model as parent
     public static <T extends FlowElement> T contribute(BpmnModelInstance modelInstance, T element) {
         return contribute(modelInstance, BpmnElementSearcher.findFirstProcess(modelInstance), element);
+    }
+
+    // Add a new single element to the first process in modelInstance model as parent
+    public static <T extends FlowElement> T contribute(BpmnModelInstance modelInstance, String parentElementId, T element) {
+        // Verify parent element is part of the model
+        ModelElementInstance parentElement = modelInstance.getModelElementById(parentElementId);
+        BpmnHelper.checkElementPresent(parentElement != null, "FlowElement with id \'" + parentElementId + "\' is not part of given BpmnModelInstance");
+        return contribute(modelInstance, parentElement, element);
     }
 
 
@@ -1149,17 +1158,6 @@ public final class BpmnElementHandler {
 
     }
 
-    // Populate a subprocess with flow nodes
-    public static void populateSubProcess(SubProcess targetSubProcess, StartEvent sourceStartEvent) {
-        targetSubProcess.builder().embeddedSubProcess().startEvent(sourceStartEvent.getId()).name(sourceStartEvent.getName());
-        BpmnModelInstance modelInstance = (BpmnModelInstance) targetSubProcess.getModelInstance();
-        FlowNode appendNode = modelInstance.getModelElementById(sourceStartEvent.getId());
-        FlowNode includeNode = sourceStartEvent.getSucceedingNodes().singleResult();
-
-        appendTo(modelInstance, appendNode, includeNode);
-
-    }
-
     // Insert a new flow node between two flow nodes in the model
     public static void insertFlowNodeBetweenFlowNodes(BpmnModelInstance modelInstance, FlowNode newNode, String node1Id, String node2Id) {
         FlowNode node1 = modelInstance.getModelElementById(node1Id);
@@ -1188,33 +1186,6 @@ public final class BpmnElementHandler {
         return;
     }
 
-    // Make a copy of a BpmnModelInstance
-    public static BpmnModelInstance copyModelInstance (BpmnModelInstance modelToCopy) {
-        return Bpmn.readModelFromStream(
-                    new ByteArrayInputStream(
-                        Bpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
-                    )
-                );
-    }
-
-    // Make a copy of a TailorableBpmnModelInstance
-    public static TailorableBpmnModelInstance copyModelInstance (TailorableBpmnModelInstance modelToCopy) {
-        return TailorableBpmn.readModelFromStream(
-                    new ByteArrayInputStream(
-                            TailorableBpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
-                    )
-                );
-    }
-
-    // Make a copy of a BpmntModelInstance
-    public static BpmntModelInstance copyModelInstance (BpmntModelInstance modelToCopy) {
-        return Bpmnt.readModelFromStream(
-                    new ByteArrayInputStream(
-                        Bpmnt.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
-                    )
-                );
-    }
-
     public static  <T extends ModelElementInstance> T copyElement(T element) {
         BpmnModelInstance modelInstance = (BpmnModelInstance) element.getModelInstance();
         T copiedElement = (T) modelInstance.newInstance(element.getElementType());
@@ -1223,4 +1194,56 @@ public final class BpmnElementHandler {
         return copiedElement;
     }
 
+    // Populate a subprocess with flow nodes
+    public static void populateSubProcess(SubProcess targetSubProcess, StartEvent sourceStartEvent) {
+        targetSubProcess.builder().embeddedSubProcess().startEvent(sourceStartEvent.getId()).name(sourceStartEvent.getName());
+        BpmnModelInstance modelInstance = (BpmnModelInstance) targetSubProcess.getModelInstance();
+        FlowNode appendNode = modelInstance.getModelElementById(sourceStartEvent.getId());
+        FlowNode includeNode = sourceStartEvent.getSucceedingNodes().singleResult();
+
+        appendTo(modelInstance, appendNode, includeNode);
+
+    }
+
+    // Make a copy of a BpmnModelInstance
+    public static BpmnModelInstance copyModelInstance (BpmnModelInstance modelToCopy) {
+        return Bpmn.readModelFromStream(
+                new ByteArrayInputStream(
+                        Bpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                )
+        );
+    }
+
+    // Make a copy of a TailorableBpmnModelInstance
+    public static TailorableBpmnModelInstance copyModelInstance (TailorableBpmnModelInstance modelToCopy) {
+        return TailorableBpmn.readModelFromStream(
+                new ByteArrayInputStream(
+                        TailorableBpmn.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                )
+        );
+    }
+
+    // Make a copy of a BpmntModelInstance
+    public static BpmntModelInstance copyModelInstance (BpmntModelInstance modelToCopy) {
+        return Bpmnt.readModelFromStream(
+                new ByteArrayInputStream(
+                        Bpmnt.convertToString(modelToCopy).getBytes(StandardCharsets.UTF_8)
+                )
+        );
+    }
+
+    // Convert a model to a subprocess
+    public static <T extends ModelInstance, E extends ModelElementInstance>
+    void convertModelToSubprocess(E parentElement, T modelToConvert) {
+
+        // Create new FlowElement in model with same properties as element parameter
+        Process processToConvert = modelToConvert.getModelElementsByType(Process.class).iterator().next();
+
+        SubProcess subProcess =  parentElement.getModelInstance().newInstance(SubProcess.class);
+        subProcess.setId(processToConvert.getId());
+        subProcess.setName(processToConvert.getName());
+        parentElement.addChildElement(subProcess);
+
+        populateSubProcess(subProcess, BpmnElementSearcher.findStartEvent(processToConvert));
+    }
 }

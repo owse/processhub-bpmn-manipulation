@@ -11,12 +11,13 @@ import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
-import org.prisma.processhub.bpmn.manipulation.operation.*;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnHelper;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
 public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements BpmntModelInstance {
 
@@ -25,24 +26,39 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         super(model, modelBuilder, document);
     }
 
-    private Map<Integer, BpmnOperation> bpmntLog;
+    private List<BpmntOperation> bpmntLog;
 
     // BPMNt log operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    public Map<Integer, BpmnOperation> getBpmntLog() {
+    public List<BpmntOperation> getBpmntLog() {
         return bpmntLog;
     }
 
-    public boolean isBpmntLogInitialized() {
+    private boolean isBpmntLogInitialized() {
         return bpmntLog != null;
     }
 
-    public void setBpmntLog(Map<Integer, BpmnOperation> bpmntLog) {
+    public void setBpmntLog(List<BpmntOperation> bpmntLog) {
         this.bpmntLog = bpmntLog;
     }
 
-    public void addToLog(BpmnOperation operation) {
-        bpmntLog.put(getNumberOperations() + 1, operation);
+    protected void addOperation(BpmntOperation operation) {
+        if (bpmntLog == null) {
+            if (operation instanceof Extend) {
+                init((Extend) operation);
+            }
+        } else {
+            operation.setExecutionOrder(bpmntLog.size() + 1);
+            bpmntLog.add(operation);
+        }
+    }
+
+    public void init(Extend extend) {
+        if (bpmntLog == null) {
+            bpmntLog = new ArrayList<BpmntOperation>();
+            extend.setExecutionOrder(1);
+            bpmntLog.add(extend);
+        }
     }
 
     public int getNumberOperations() {
@@ -73,11 +89,11 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
     // Add a new single process element to the given parent element
     public <T extends FlowElement, E extends ModelElementInstance> void contribute(E parentElement, T element) {
         if (isBpmntLogInitialized()) {
-            parentElement = BpmnElementHandler.copyElement(parentElement);
+            String parentElementId = (parentElement == null) ? null : parentElement.getAttributeValue("id");
             element = BpmnElementHandler.copyElement(element);
-            ContributeToParent operation = new ContributeToParent(parentElement, element);
+            ContributeToParent operation = new ContributeToParent(parentElementId, element);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -87,7 +103,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             element = BpmnElementHandler.copyElement(element);
             Contribute operation = new Contribute(element);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -110,7 +126,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             Suppress operation = new Suppress(elementId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -126,7 +142,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             Modify operation = new Modify(elementId, property, value);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -144,7 +160,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             Rename operation = new Rename(elementId, newName);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -160,7 +176,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             DeleteNode operation = new DeleteNode(nodeId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -175,7 +191,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             DeleteFragment operation = new DeleteFragment(startingNodeId, endingNodeId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -190,7 +206,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             replacingNode = BpmnElementHandler.copyElement(replacingNode);
             ReplaceNodeWithNode operation = new ReplaceNodeWithNode(existingNodeId, replacingNode);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -205,7 +221,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             replacingFragment = BpmnElementHandler.copyModelInstance(replacingFragment);
             ReplaceNodeWithFragment operation = new ReplaceNodeWithFragment(existingNodeId, replacingFragment);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -220,7 +236,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             replacingNode = BpmnElementHandler.copyElement(replacingNode);
             ReplaceFragmentWithNode operation = new ReplaceFragmentWithNode(startingNodeId, endingNodeId, replacingNode);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -235,7 +251,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             replacingFragment = BpmnElementHandler.copyModelInstance(replacingFragment);
             ReplaceFragmentWithFragment operation = new ReplaceFragmentWithFragment(startingNodeId, endingNodeId, replacingFragment);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -251,7 +267,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             MoveNode operation = new MoveNode(targetNodeId, newPositionAfterOfId, newPositionBeforeOfId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -269,7 +285,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             MoveFragment operation = new MoveFragment(targetStartingNodeId, targetEndingNodeId, newPositionAfterOfId, newPositionBeforeOfId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -283,7 +299,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         if (isBpmntLogInitialized()) {
             Parallelize operation = new Parallelize(targetStartingNodeId, targetEndingNodeId);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -294,7 +310,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             newSubProcessModel = BpmnElementHandler.copyModelInstance(newSubProcessModel);
             Split operation = new Split(taskId, newSubProcessModel);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -306,7 +322,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
             InsertNode operation = new InsertNode(afterOfId, beforeOfId, flowNodeToInsert);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -320,7 +336,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             String afterOfId = (afterOf == null) ? null : afterOf.getId();
             String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
             InsertFragment operation = new InsertFragment(afterOfId, beforeOfId, fragmentToInsert);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -332,7 +348,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
             ConditionalInsertNode operation = new ConditionalInsertNode(afterOfId, beforeOfId, flowNodeToInsert, condition, inLoop);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 
@@ -347,7 +363,7 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             fragmentToInsert = BpmnElementHandler.copyModelInstance(fragmentToInsert);
             ConditionalInsertFragment operation = new ConditionalInsertFragment(afterOfId, beforeOfId, fragmentToInsert, condition, inLoop);
             operation.execute(this);
-            addToLog(operation);
+            addOperation(operation);
         }
     }
 }

@@ -4,8 +4,8 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
-import org.prisma.processhub.bpmn.manipulation.operation.BpmnOperation;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.BpmntOperation;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.Extend;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,9 +20,10 @@ public interface BpmntModelInstance extends BpmnModelInstance {
 
     // BPMNt log operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    Map<Integer, BpmnOperation> getBpmntLog();
-    void setBpmntLog(Map<Integer, BpmnOperation> bpmntLog);
+    List<BpmntOperation> getBpmntLog();
+    void setBpmntLog(List<BpmntOperation> bpmntLog);
     int getNumberOperations();
+    void init(Extend extend);
 
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
