@@ -335,7 +335,10 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
             fragmentToInsert = BpmnElementHandler.copyModelInstance(fragmentToInsert);
             String afterOfId = (afterOf == null) ? null : afterOf.getId();
             String beforeOfId = (beforeOf == null) ? null : beforeOf.getId();
+
             InsertFragment operation = new InsertFragment(afterOfId, beforeOfId, fragmentToInsert);
+
+            operation.execute(this);
             addOperation(operation);
         }
     }

@@ -1187,7 +1187,8 @@ public final class BpmnElementHandler {
     }
 
     public static  <T extends ModelElementInstance> T copyElement(T element) {
-        BpmnModelInstance modelInstance = (BpmnModelInstance) element.getModelInstance();
+        BpmnModelInstance modelInstance = Bpmn.createEmptyModel();
+        //BpmnModelInstance modelInstance = (BpmnModelInstance) element.getModelInstance();
         T copiedElement = (T) modelInstance.newInstance(element.getElementType());
         copiedElement.setAttributeValue("id", element.getAttributeValue("id"), true);
         copiedElement.setAttributeValue("name", element.getAttributeValue("name"), true);

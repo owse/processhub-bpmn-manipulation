@@ -12,7 +12,7 @@ public class Parallelize extends BpmntOperation {
 
     public Parallelize(String startingNodeId, String endingNodeId) {
         this.startingNodeId = startingNodeId;
-        this.endingNodeId = startingNodeId;
+        this.endingNodeId = endingNodeId;
 }
 
     public void execute(BpmnModelInstance modelInstance) {

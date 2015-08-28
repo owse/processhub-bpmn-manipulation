@@ -1,4 +1,4 @@
-package org.prisma.processhub.bpmn.manipulation;
+package org.prisma.processhub.bpmn.manipulation.composition;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -6,7 +6,6 @@ import junit.framework.TestSuite;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
-import org.prisma.processhub.bpmn.manipulation.composition.BpmnModelComposer;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.util.List;

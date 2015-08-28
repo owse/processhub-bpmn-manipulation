@@ -2,6 +2,7 @@ package org.prisma.processhub.bpmn.manipulation.bpmnt.operation;
 
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
@@ -22,7 +23,7 @@ public class InsertFragment extends BpmntInsertionDependentOperation {
     }
 
     @Override
-    public void generateExtensionElement(org.camunda.bpm.model.bpmn.instance.Process process) {
+    public void generateExtensionElement(Process process) {
         SubProcess subProcess = generateSubProcessContainer(process);
         ModelElementInstance subProcessExt = subProcess.getExtensionElements().getElementsQuery().singleResult();
 
