@@ -2,24 +2,19 @@ package org.prisma.processhub.bpmn.manipulation.bpmnt;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.*;
+import org.camunda.bpm.model.bpmn.instance.EndEvent;
+import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.Process;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.camunda.bpm.model.bpmn.instance.StartEvent;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
-* Created by renan on 8/19/15.
-*/
 
 public class BpmntTest {
 

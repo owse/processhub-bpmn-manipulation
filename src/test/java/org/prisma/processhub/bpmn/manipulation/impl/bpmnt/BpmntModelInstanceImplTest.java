@@ -91,15 +91,15 @@ public class BpmntModelInstanceImplTest {
 
     @Test
     public void contribute_ElementFromSameModel_ExceptionThrown() {
+        BpmntModelInstance modelInstance = tailorableSimpleModel.extend();
+
         // Add element from same model
-        FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(simpleModel);
-        //exception.expect(IllegalArgumentException.class);
-        System.out.println("passei1");
-        simpleModel.contribute(element);
-        System.out.println("passei2");
+        FlowElement element = BpmnElementSearcher.findFlowNodeBeforeEndEvent(modelInstance);
+        exception.expect(IllegalArgumentException.class);
+        modelInstance.contribute(element);
 
         // Verify model consistency with Camunda API
-        Bpmnt.validateModel(simpleModel);
+        Bpmnt.validateModel(modelInstance);
     }
 
     @Test

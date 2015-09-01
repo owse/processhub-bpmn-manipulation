@@ -190,7 +190,7 @@ public final class BpmnElementHandler {
     // Delete element by id
     public static void delete(BpmnModelInstance modelInstance, String nodeId) {
         FlowNode node = modelInstance.getModelElementById(nodeId);
-        BpmnHelper.checkElementPresent(node != null, "Flow Node with id \'" + nodeId +  "\' not found");
+        BpmnHelper.checkElementPresent(node != null, "Flow Node with id \'" + nodeId + "\' not found");
         delete(modelInstance, node);
     }
 
@@ -725,14 +725,27 @@ public final class BpmnElementHandler {
         FlowNode previousNode = beforeOf.getPreviousNodes().singleResult();
         SequenceFlow previousFlow = beforeOf.getIncoming().iterator().next();
 
-        // Remove those sequence flows
-        suppress(modelInstance, succeedingFlow);
-        suppress(modelInstance, previousFlow);
+        if (succeedingNode instanceof ParallelGateway) {
+            if (!BpmnHelper.isGatewayDivergent((Gateway) succeedingNode)) {
+                suppress(modelInstance, succeedingFlow);
+                afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+            }
+        }
+        else {
+            suppress(modelInstance, succeedingFlow);
+            afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+        }
 
-        // Insert a parallel gateway between afterOf and its succeeding node
-        afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
-        // Insert a parallel gateway between beforeOf and its preceding node
-        previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+        if (previousNode instanceof ParallelGateway) {
+            if (!BpmnHelper.isGatewayConvergent((Gateway) previousNode)) {
+                suppress(modelInstance, previousFlow);
+                previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+            }
+        }
+        else {
+            suppress(modelInstance, previousFlow);
+            previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+        }
 
         // Add flow node to model
         FlowNode flowNodeInserted = contribute(modelInstance, afterOf.getParentElement(), flowNodeToInsert);
@@ -824,18 +837,34 @@ public final class BpmnElementHandler {
             }
 
             // Insert in parallel
-
             FlowNode succeedingNode = afterOf.getSucceedingNodes().singleResult();
             SequenceFlow succeedingFlow = afterOf.getOutgoing().iterator().next();
 
             FlowNode previousNode = beforeOf.getPreviousNodes().singleResult();
             SequenceFlow previousFlow = beforeOf.getIncoming().iterator().next();
 
-            suppress(modelInstance, succeedingFlow);
-            suppress(modelInstance, previousFlow);
 
-            afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
-            previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+            if (succeedingNode instanceof ParallelGateway) {
+                if (!BpmnHelper.isGatewayDivergent((Gateway) succeedingNode)) {
+                    suppress(modelInstance, succeedingFlow);
+                    afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+                }
+            }
+            else {
+                suppress(modelInstance, succeedingFlow);
+                afterOf.builder().parallelGateway().connectTo(succeedingNode.getId());
+            }
+
+            if (previousNode instanceof ParallelGateway) {
+                if (!BpmnHelper.isGatewayConvergent((Gateway) previousNode)) {
+                    suppress(modelInstance, previousFlow);
+                    previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+                }
+            }
+            else {
+                suppress(modelInstance, previousFlow);
+                previousNode.builder().parallelGateway().connectTo(beforeOf.getId());
+            }
 
             appendTo(modelInstance, afterOf.getSucceedingNodes().singleResult(), firstNodeToInsert);
             FlowNode lastInsertedFlowNode = modelInstance.getModelElementById(lastNodeToInsertId);

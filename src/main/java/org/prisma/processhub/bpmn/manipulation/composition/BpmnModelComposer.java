@@ -3,9 +3,16 @@ package org.prisma.processhub.bpmn.manipulation.composition;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
+import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 // Restrictions:
@@ -15,8 +22,6 @@ import java.util.*;
 
 public class BpmnModelComposer
 {
-    // Public methods
-
     // Concatenates models in series
     public BpmnModelInstance joinModelsInSeries (BpmnModelInstance... modelsToJoin) {
 
@@ -25,81 +30,72 @@ public class BpmnModelComposer
         }
 
         if (modelsToJoin.length == 1) {
-            BpmnElementHandler.generateUniqueIds(modelsToJoin[0]);
+            return BpmnElementHandler.copyModelInstance(modelsToJoin[0]);
         }
 
-
-        // Generates unique IDs for every flow node in every model
-        for (BpmnModelInstance mi: modelsToJoin) {
+        List<BpmnModelInstance> copiedModels = new ArrayList<BpmnModelInstance>();
+        for (int i = 0; i < modelsToJoin.length; i++) {
 
             // Imposes restriction of one start event and one end event per model
-            if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
+            if (countStartEvents(modelsToJoin[i]) != 1 || countEndEvents(modelsToJoin[i]) != 1) {
                 return null;
             }
-            BpmnElementHandler.generateUniqueIds(mi);
-        }
-
-        BpmnModelInstance resultModel = modelsToJoin[0];
-        FlowNode lastFlowNodeResult = BpmnElementSearcher.findFlowNodeBeforeEndEvent(resultModel);
-        BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
-
-        for (int i = 1; i < modelsToJoin.length; i++) {
-            StartEvent startEvent = BpmnElementSearcher.findStartEvent(modelsToJoin[i]);
-            FlowNode currentFirstFlowNode = BpmnElementSearcher.findFlowNodeAfterStartEvent(modelsToJoin[i]);
-            BpmnElementHandler.delete(modelsToJoin[i], startEvent.getId());
-            BpmnElementHandler.appendTo(lastFlowNodeResult, currentFirstFlowNode);
-
-            if (i+1 < modelsToJoin.length) {
-                BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+            if (i != 0) {
+                copiedModels.add(BpmnElementHandler.copyModelInstance(modelsToJoin[i]));
             }
+            //BpmnElementHandler.generateUniqueIds(mi);
         }
 
-        return resultModel;
+        // Use the first model as tailorable
+        InputStream stream = new ByteArrayInputStream(Bpmn.convertToString(modelsToJoin[0]).getBytes(StandardCharsets.UTF_8));
+        TailorableBpmnModelInstance baseModel = TailorableBpmn.readModelFromStream(stream);
+
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(baseModel);
+
+        // Concatenate models in series
+        for (BpmnModelInstance mi: copiedModels) {
+            baseModel.insert(null, endEvent, mi);
+        }
+
+        InputStream stream2 = new ByteArrayInputStream(TailorableBpmn.convertToString(baseModel).getBytes(StandardCharsets.UTF_8));
+        return Bpmn.readModelFromStream(stream2);
     }
 
     public BpmnModelInstance joinModelsInSeries (List<BpmnModelInstance> modelsToJoin) {
-
         if (modelsToJoin == null) {
             return null;
         }
 
         if (modelsToJoin.size() == 1) {
-            BpmnElementHandler.generateUniqueIds(modelsToJoin.iterator().next());
+            return BpmnElementHandler.copyModelInstance(modelsToJoin.iterator().next());
         }
 
-        List<BpmnModelInstance> uniqueModelsToJoin = new ArrayList<BpmnModelInstance>();
-
-        // Generates unique IDs for every flow node in every model
-        for (BpmnModelInstance mi: modelsToJoin) {
+        List<BpmnModelInstance> copiedModels = new ArrayList<BpmnModelInstance>();
+        for (int i = 0; i < modelsToJoin.size(); i++) {
 
             // Imposes restriction of one start event and one end event per model
-            if (countStartEvents(mi) != 1 || countEndEvents(mi) != 1) {
+            if (countStartEvents(modelsToJoin.get(i)) != 1 || countEndEvents(modelsToJoin.get(i)) != 1) {
                 return null;
             }
-            BpmnElementHandler.generateUniqueIds(mi);
-        }
-
-        Iterator<BpmnModelInstance> modelIt = modelsToJoin.iterator();
-
-
-        BpmnModelInstance resultModel = modelIt.next();
-        FlowNode lastFlowNodeResult = BpmnElementSearcher.findFlowNodeBeforeEndEvent(resultModel);
-        BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
-
-        while (modelIt.hasNext()) {
-
-            BpmnModelInstance currentModel = modelIt.next();
-            StartEvent startEvent = BpmnElementSearcher.findStartEvent(currentModel);
-            FlowNode firstFlowNodeCurrent = BpmnElementSearcher.findFlowNodeAfterStartEvent(currentModel);
-            BpmnElementHandler.delete(currentModel, startEvent.getId());
-
-            BpmnElementHandler.appendTo(lastFlowNodeResult, firstFlowNodeCurrent);
-
-            if (modelIt.hasNext()) {
-                BpmnElementHandler.delete(resultModel, BpmnElementSearcher.findEndEvent(resultModel).getId());
+            if (i != 0) {
+                copiedModels.add(BpmnElementHandler.copyModelInstance(modelsToJoin.get(i)));
             }
+            //BpmnElementHandler.generateUniqueIds(mi);
         }
-        return resultModel;
+
+        // Use the first model as tailorable
+        InputStream stream = new ByteArrayInputStream(Bpmn.convertToString(modelsToJoin.get(0)).getBytes(StandardCharsets.UTF_8));
+        TailorableBpmnModelInstance baseModel = TailorableBpmn.readModelFromStream(stream);
+
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(baseModel);
+
+        // Concatenate models in series
+        for (BpmnModelInstance mi: copiedModels) {
+            baseModel.insert(null, endEvent, mi);
+        }
+
+        InputStream stream2 = new ByteArrayInputStream(TailorableBpmn.convertToString(baseModel).getBytes(StandardCharsets.UTF_8));
+        return Bpmn.readModelFromStream(stream2);
     }
 
     // Concatenates models in parallel
@@ -109,8 +105,8 @@ public class BpmnModelComposer
         }
 
         if (modelsToJoin.length == 1) {
-            BpmnElementHandler.generateUniqueIds(modelsToJoin[0]);
-            return modelsToJoin[0];
+            //BpmnElementHandler.generateUniqueIds(modelsToJoin[0]);
+            return BpmnElementHandler.copyModelInstance(modelsToJoin[0]);
         }
 
         // Generates unique IDs for every flow node in every model
@@ -340,6 +336,81 @@ public class BpmnModelComposer
         return resultModel;
     }
 
+    public BpmnModelInstance newJoinModelsInParallel  (BpmnModelInstance... modelsToJoin) {
+        if (modelsToJoin == null) {
+            return null;
+        }
+
+        if (modelsToJoin.length == 1) {
+            return BpmnElementHandler.copyModelInstance(modelsToJoin[0]);
+        }
+
+        List<BpmnModelInstance> copiedModels = new ArrayList<BpmnModelInstance>();
+        for (int i = 0; i < modelsToJoin.length; i++) {
+
+            // Imposes restriction of one start event and one end event per model
+            if (countStartEvents(modelsToJoin[i]) != 1 || countEndEvents(modelsToJoin[i]) != 1) {
+                return null;
+            }
+            if (i != 0) {
+                copiedModels.add(BpmnElementHandler.copyModelInstance(modelsToJoin[i]));
+            }
+            //BpmnElementHandler.generateUniqueIds(mi);
+        }
+
+        // Use the first model as tailorable
+        InputStream stream = new ByteArrayInputStream(Bpmn.convertToString(modelsToJoin[0]).getBytes(StandardCharsets.UTF_8));
+        TailorableBpmnModelInstance baseModel = TailorableBpmn.readModelFromStream(stream);
+
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(baseModel);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(baseModel);
+
+        // Concatenate models in series
+        for (BpmnModelInstance mi: copiedModels) {
+            baseModel.insert(startEvent, endEvent, mi);
+        }
+
+        InputStream stream2 = new ByteArrayInputStream(TailorableBpmn.convertToString(baseModel).getBytes(StandardCharsets.UTF_8));
+        return Bpmn.readModelFromStream(stream2);
+    }
+
+    public BpmnModelInstance newJoinModelsInParallel  (List<BpmnModelInstance> modelsToJoin) {
+        if (modelsToJoin == null) {
+            return null;
+        }
+
+        if (modelsToJoin.size() == 1) {
+            return BpmnElementHandler.copyModelInstance(modelsToJoin.get(0));
+        }
+
+        List<BpmnModelInstance> copiedModels = new ArrayList<BpmnModelInstance>();
+        for (int i = 0; i < modelsToJoin.size(); i++) {
+
+            // Imposes restriction of one start event and one end event per model
+            if (countStartEvents(modelsToJoin.get(i)) != 1 || countEndEvents(modelsToJoin.get(i)) != 1) {
+                return null;
+            }
+            if (i != 0) {
+                copiedModels.add(BpmnElementHandler.copyModelInstance(modelsToJoin.get(i)));
+            }
+            //BpmnElementHandler.generateUniqueIds(mi);
+        }
+
+        // Use the first model as tailorable
+        InputStream stream = new ByteArrayInputStream(Bpmn.convertToString(modelsToJoin.get(0)).getBytes(StandardCharsets.UTF_8));
+        TailorableBpmnModelInstance baseModel = TailorableBpmn.readModelFromStream(stream);
+
+        StartEvent startEvent = BpmnElementSearcher.findStartEvent(baseModel);
+        EndEvent endEvent = BpmnElementSearcher.findEndEvent(baseModel);
+
+        // Concatenate models in series
+        for (BpmnModelInstance mi: copiedModels) {
+            baseModel.insert(startEvent, endEvent, mi);
+        }
+
+        InputStream stream2 = new ByteArrayInputStream(TailorableBpmn.convertToString(baseModel).getBytes(StandardCharsets.UTF_8));
+        return Bpmn.readModelFromStream(stream2);
+    }
 
     // Private methods
     // Returns the number of start events found in the model
