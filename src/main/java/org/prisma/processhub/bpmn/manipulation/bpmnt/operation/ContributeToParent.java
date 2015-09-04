@@ -7,17 +7,24 @@ import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementHandler;
 
-public class ReplaceNodeWithNode extends BpmntInsertionDependentOperation {
-    private String replacedNodeId;
-    private FlowNode replacingNode;
+public class ContributeToParent extends BpmntInsertionDependentOperation {
+    private String parentElementId;
+    private FlowElement newElement;
 
-    public ReplaceNodeWithNode(String replacedNodeId, FlowNode replacingNode) {
-        this.replacedNodeId = replacedNodeId;
-        this.replacingNode = replacingNode;
+    public FlowElement getNewElement() {
+        return newElement;
+    }
+    public String getParentElementId() {
+        return parentElementId;
+    }
+
+    public ContributeToParent(String parentElementId, FlowElement newElement) {
+        this.newElement = newElement;
+        this.parentElementId = parentElementId;
     }
 
     public void execute(BpmnModelInstance modelInstance) {
-        BpmnElementHandler.replace(modelInstance, replacedNodeId, replacingNode);
+        BpmnElementHandler.contribute(modelInstance, parentElementId, newElement);
     }
 
     @Override
@@ -25,12 +32,7 @@ public class ReplaceNodeWithNode extends BpmntInsertionDependentOperation {
         SubProcess subProcess = generateSubProcessContainer(process);
         ModelElementInstance subProcessExt = subProcess.getExtensionElements().getElementsQuery().singleResult();
 
-        subProcessExt.setAttributeValue(BpmntExtensionAttributes.REPLACED_NODE_ID, replacedNodeId);
-        BpmnElementHandler.contribute((BpmnModelInstance) subProcess.getModelInstance(), subProcess, replacingNode);
-    }
-
-    public String getReplacedNodeId() { return replacedNodeId; }
-    public FlowNode getReplacingNode() {
-        return replacingNode;
+        BpmnElementHandler.contribute((BpmnModelInstance) subProcess.getModelInstance(), subProcess, newElement);
+        subProcessExt.setAttributeValue(BpmntExtensionAttributes.PARENT_ELEMENT_ID, parentElementId);
     }
 }

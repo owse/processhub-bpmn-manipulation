@@ -20,10 +20,6 @@ public interface TailorableBpmnModelInstance extends BpmnModelInstance {
     String setUniqueId(FlowElement element);
     void generateUniqueIds();
 
-    void connectAllPreviousToSucceedingNodes(FlowNode previous, FlowNode succeeding);
-    void connectAllPreviousToSucceedingNodes(FlowNode node);
-
-
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -31,8 +27,8 @@ public interface TailorableBpmnModelInstance extends BpmnModelInstance {
     BpmntModelInstance extend();
 
     // Contribute
-    <T extends FlowElement, E extends ModelElementInstance> T contribute(E parentElement, T element);
-    <T extends FlowElement> T contribute(T element);
+    <T extends FlowElement, E extends ModelElementInstance> void contribute(E parentElement, T element);
+    <T extends FlowElement> void contribute(T element);
 
     // Suppress
     <T extends FlowElement> void suppress (T element);
@@ -60,7 +56,7 @@ public interface TailorableBpmnModelInstance extends BpmnModelInstance {
 
     // Replace
     void replace(FlowNode targetNode, FlowNode replacingNode);
-    void replace(String targetNodeId, FlowNode FlowNode);
+    void replace(String targetNodeId, FlowNode flowNode);
 
     void replace(FlowNode targetNode, BpmnModelInstance replacingFragment);
     void replace(String targetNodeId, BpmnModelInstance replacingFragment);
@@ -79,8 +75,8 @@ public interface TailorableBpmnModelInstance extends BpmnModelInstance {
     void move(String targetStartingNodeId, String targetEndingNodeId, String newPositionAfterOfId, String newPositionBeforeOfId);
 
     // Parallelize
-    void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode) throws Exception;
-    void parallelize(String targetStartingNodeId, String targetEndingNodeId) throws Exception;
+    void parallelize(FlowNode targetStartingNode, FlowNode targetEndingNode);
+    void parallelize(String targetStartingNodeId, String targetEndingNodeId);
 
     // Split
     void split(Task targetTask, BpmnModelInstance newSubProcessModel);

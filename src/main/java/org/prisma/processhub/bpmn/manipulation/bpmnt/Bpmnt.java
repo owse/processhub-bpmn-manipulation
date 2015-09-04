@@ -13,10 +13,8 @@ import org.camunda.bpm.model.bpmn.impl.instance.dc.BoundsImpl;
 import org.camunda.bpm.model.bpmn.impl.instance.dc.FontImpl;
 import org.camunda.bpm.model.bpmn.impl.instance.dc.PointImpl;
 import org.camunda.bpm.model.bpmn.impl.instance.di.*;
-import org.camunda.bpm.model.bpmn.instance.Definitions;
-import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
+import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.bpmn.instance.Process;
-import org.camunda.bpm.model.bpmn.instance.SubProcess;
 import org.camunda.bpm.model.xml.Model;
 import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.instance.ModelElementInstanceImpl;
@@ -24,9 +22,12 @@ import org.camunda.bpm.model.xml.impl.util.IoUtil;
 import org.camunda.bpm.model.xml.impl.util.ModelUtil;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
-import org.prisma.processhub.bpmn.manipulation.util.BpmnElementCreator;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -35,40 +36,6 @@ public class Bpmnt {
     private BpmntParser bpmntParser = new BpmntParser();
     private final ModelBuilder bpmntModelBuilder = ModelBuilder.createInstance("Tailorable BPMN Model");
     private Model BpmntModel;
-
-
-    // BPMNt extension attributes
-    //private static final String OPERATION = "operation";
-    private static final String ORDER = "order";
-    private static final String AFTER_OF_ID = "afterOfId";
-    private static final String BEFORE_OF_ID = "beforeOfId";
-    //final BpmnModelInstance fragmentToInsert;
-    private static final String CONDITION = "condition";
-    private static final String IN_LOOP = "inLoop";
-    //private FlowNode flowNodeToInsert;
-    // FlowElement newFlowElement
-    private static final String PARENT_ELEMENT_ID = "parentId" ;
-    // FlowElement newFlowElement
-    private static final String STARTING_NODE_ID = "startingNodeId";
-    private static final String ENDING_NODE_ID = "endingNodeId";
-    private static final String NODE_ID = "nodeId";
-    private static final String BASE_PROCESS_ID = "baseProcessId";
-    private static final String NEW_PROCESS_ID = "newProcessId";
-    private static final String MODIFIED_ELEMENT_ID = "modifiedId";
-    private static final String PROPERTY = "property";
-    private static final String VALUE = "value";
-    private static final String NEW_POSITION_AFTER_OF_ID = AFTER_OF_ID;
-    private static final String NEW_POSITION_BEFORE_OF_ID = BEFORE_OF_ID;
-    private static final String ELEMENT_ID = "elementId";
-    private static final String NEW_NAME = "newName";
-    // private BpmnModelInstance replacingFragment;
-    // private FlowNode replacingNode;
-    private static final String REPLACED_NODE_ID = "replacedNodeId";
-    private static final String TASK_ID = "taskId";
-    //final BpmnModelInstance newSubProcessModel;
-    private static final String SUPPRESSED_ELEMENT_ID = ELEMENT_ID;
-    private static final String SUPPRESSED_ELEMENTS_IDS = "elementId";
-
 
     public static BpmnModelInstance convertBpmntFromListToModel (List<BpmntOperation> bpmntList) {
 
@@ -85,153 +52,222 @@ public class Bpmnt {
             return null;
         }
 
-        BpmnModelInstance modelInstance = Bpmn.createProcess(extend.getNewProcessId())
-                                            .name("Tailored_" + extend.getBaseProcessId()).done();
+        BpmnModelInstance modelInstance =
+                Bpmn
+                        .createProcess(extend.getNewProcessId())
+                        .name(BpmntExtensionAttributes.MODIFIED_PROCESS_ID_PREFIX + extend.getBaseProcessId())
+                        .done();
 
-        Process process = modelInstance.getModelElementsByType(Process.class).iterator().next();
-
-        process.setExtensionElements(modelInstance.newInstance(ExtensionElements.class));
-
-        ModelElementInstance processExtension = process
-                                                    .getExtensionElements()
-                                                    .addExtensionElement("http://www.processhub.net", extend.getName());
-
-        // Add the extension for the Extend operation
-        //processExtension.setAttributeValue(OPERATION, extend.getName());
-        processExtension.setAttributeValue(ORDER, Integer.toString(extend.getExecutionOrder()));
-        processExtension.setAttributeValue(BASE_PROCESS_ID, extend.getBaseProcessId());
-        processExtension.setAttributeValue(NEW_PROCESS_ID, extend.getNewProcessId());
+        Process process = BpmnElementSearcher.findFirstProcess(modelInstance);
 
         // Add extensions
         for (BpmntOperation op: bpmntList) {
-            // Skip Extend operation
-            if (op instanceof Extend) {}
-
-            // Operations that depend only on the tailored model
-            else if (op instanceof Suppress || op instanceof Modify || op instanceof Rename ||
-                op instanceof DeleteNode || op instanceof DeleteFragment || op instanceof MoveNode ||
-                op instanceof MoveFragment || op instanceof Parallelize)
-            {
-                ModelElementInstance currentExtension = process.getExtensionElements().addExtensionElement("http://www.processhub.net", op.getName());
-                currentExtension.setAttributeValue(ORDER, Integer.toString(op.getExecutionOrder()));
-
-                if (op instanceof Suppress) {
-                    currentExtension.setAttributeValue(SUPPRESSED_ELEMENT_ID, ((Suppress) op).getSuppressedElementId());
-                }
-                else if (op instanceof Modify) {
-                    currentExtension.setAttributeValue(MODIFIED_ELEMENT_ID, ((Modify) op).getModifiedElementId());
-                    currentExtension.setAttributeValue(PROPERTY, ((Modify) op).getProperty());
-                    currentExtension.setAttributeValue(VALUE, ((Modify) op).getValue());
-                }
-                else if (op instanceof Rename) {
-                    currentExtension.setAttributeValue(ELEMENT_ID, ((Rename) op).getElementId());
-                    currentExtension.setAttributeValue(NEW_NAME, ((Rename) op).getNewName());
-                }
-                else if (op instanceof DeleteNode) {
-                    currentExtension.setAttributeValue(NODE_ID, ((DeleteNode) op).getNodeId());
-                }
-                else if (op instanceof DeleteFragment) {
-                    currentExtension.setAttributeValue(STARTING_NODE_ID, ((DeleteFragment) op).getStartingNodeId());
-                    currentExtension.setAttributeValue(ENDING_NODE_ID, ((DeleteFragment) op).getEndingNodeId());
-                }
-                else if (op instanceof MoveNode) {
-                    currentExtension.setAttributeValue(NODE_ID, ((MoveNode) op).getNodeId());
-                    currentExtension.setAttributeValue(NEW_POSITION_AFTER_OF_ID, ((MoveNode) op).getNewPositionAfterOfId());
-                    currentExtension.setAttributeValue(NEW_POSITION_BEFORE_OF_ID, ((MoveNode) op).getNewPositionBeforeOfId());
-                }
-                else if (op instanceof MoveFragment) {
-                    currentExtension.setAttributeValue(STARTING_NODE_ID, ((MoveFragment) op).getStartingNodeId());
-                    currentExtension.setAttributeValue(ENDING_NODE_ID, ((MoveFragment) op).getEndingNodeId());
-                    currentExtension.setAttributeValue(NEW_POSITION_AFTER_OF_ID, ((MoveFragment) op).getNewPositionAfterOfId());
-                    currentExtension.setAttributeValue(NEW_POSITION_BEFORE_OF_ID, ((MoveFragment) op).getNewPositionBeforeOfId());
-                }
-                else {
-                    currentExtension.setAttributeValue(STARTING_NODE_ID, ((Parallelize) op).getStartingNodeId());
-                    currentExtension.setAttributeValue(ENDING_NODE_ID, ((Parallelize) op).getEndingNodeId());
-                }
-            }
-
-            // Operations that need to save parts of other models
-            else {
-                SubProcess subProcess = modelInstance.newInstance(SubProcess.class);
-                subProcess.setId(op.getName() + "_" + op.getExecutionOrder());
-                subProcess.setName(op.getName() + " " + op.getExecutionOrder());
-                process.addChildElement(subProcess);
-
-                subProcess.setExtensionElements(modelInstance.newInstance(ExtensionElements.class));
-
-                ModelElementInstance subProcessExt = subProcess
-                                                        .getExtensionElements()
-                                                        .addExtensionElement("http://www.processhub.net", op.getName());
-
-                subProcessExt.setAttributeValue(ORDER, Integer.toString(op.getExecutionOrder()));
-
-                if (op instanceof Contribute) {
-                    BpmnElementCreator.add(subProcess, ((Contribute) op).getNewElement());
-                    if (op instanceof ContributeCustomParent) {
-                        subProcessExt.setAttributeValue(PARENT_ELEMENT_ID, ((ContributeCustomParent) op).getParentElementId());
-                    }
-                }
-
-                else if (op instanceof ReplaceNodeWithNode) {
-                    subProcessExt.setAttributeValue(REPLACED_NODE_ID, ((ReplaceNodeWithNode) op).getReplacedNodeId());
-                    BpmnElementCreator.add(subProcess, ((ReplaceNodeWithNode) op).getReplacingNode());
-                }
-
-                else if (op instanceof ReplaceNodeWithFragment) {
-                    subProcessExt.setAttributeValue(REPLACED_NODE_ID, ((ReplaceNodeWithFragment) op).getReplacedNodeId());
-                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ReplaceNodeWithFragment) op).getReplacingFragment());
-                }
-
-                else if (op instanceof ReplaceFragmentWithNode) {
-                    subProcessExt.setAttributeValue(STARTING_NODE_ID, ((ReplaceFragmentWithNode) op).getStartingNodeId());
-                    subProcessExt.setAttributeValue(ENDING_NODE_ID, ((ReplaceFragmentWithNode) op).getEndingNodeId());
-                    BpmnElementCreator.add(subProcess, ((ReplaceFragmentWithNode) op).getReplacingNode());
-                }
-
-                else if (op instanceof ReplaceFragmentWithFragment) {
-                    subProcessExt.setAttributeValue(STARTING_NODE_ID, ((ReplaceFragmentWithFragment) op).getStartingNodeId());
-                    subProcessExt.setAttributeValue(ENDING_NODE_ID, ((ReplaceFragmentWithFragment) op).getEndingNodeId());
-                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ReplaceFragmentWithFragment) op).getReplacingFragment());
-                }
-
-                else if (op instanceof Split) {
-                    subProcessExt.setAttributeValue(TASK_ID, ((Split) op).getTaskId());
-                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((Split) op).getNewSubProcessModel());
-                }
-
-                else if (op instanceof InsertNode) {
-                    subProcessExt.setAttributeValue(AFTER_OF_ID, ((InsertNode) op).getAfterOfId());
-                    subProcessExt.setAttributeValue(BEFORE_OF_ID, ((InsertNode) op).getBeforeOfId());
-                    BpmnElementCreator.add(subProcess, ((InsertNode) op).getFlowNodeToInsert());
-                }
-
-                else if (op instanceof InsertFragment) {
-                    subProcessExt.setAttributeValue(AFTER_OF_ID, ((InsertFragment) op).getAfterOfId());
-                    subProcessExt.setAttributeValue(BEFORE_OF_ID, ((InsertFragment) op).getBeforeOfId());
-                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((InsertFragment) op).getFragmentToInsert());
-                }
-
-                else if (op instanceof ConditionalInsertNode) {
-                    subProcessExt.setAttributeValue(AFTER_OF_ID, ((ConditionalInsertNode) op).getAfterOfId());
-                    subProcessExt.setAttributeValue(BEFORE_OF_ID, ((ConditionalInsertNode) op).getBeforeOfId());
-                    subProcessExt.setAttributeValue(CONDITION, ((ConditionalInsertNode) op).getCondition());
-                    subProcessExt.setAttributeValue(IN_LOOP, Boolean.toString(((ConditionalInsertNode) op).isInLoop()));
-                    BpmnElementCreator.add(subProcess, ((ConditionalInsertNode) op).getFlowNodeToInsert());
-                }
-
-                else if (op instanceof ConditionalInsertFragment) {
-                    subProcessExt.setAttributeValue(AFTER_OF_ID, ((ConditionalInsertFragment) op).getAfterOfId());
-                    subProcessExt.setAttributeValue(BEFORE_OF_ID, ((ConditionalInsertFragment) op).getBeforeOfId());
-                    subProcessExt.setAttributeValue(CONDITION, ((ConditionalInsertFragment) op).getCondition());
-                    subProcessExt.setAttributeValue(IN_LOOP, Boolean.toString(((ConditionalInsertFragment) op).isInLoop()));
-                    BpmnElementCreator.convertModelToSubprocess(subProcess, ((ConditionalInsertFragment) op).getFragmentToInsert());
-                }
-            }
+            op.generateExtensionElement(process);
         }
 
-
         return modelInstance;
+    }
+
+    public static List<BpmntOperation> convertBpmntFromModelToList (BpmnModelInstance bpmntModel) {
+        Process process = BpmnElementSearcher.findFirstProcess(bpmntModel);
+
+        //Collection<ModelElementInstance> extentionElements = process.getExtensionElements().getElements();
+        Collection<ExtensionElements> extensionElementsCollection = bpmntModel.getModelElementsByType(ExtensionElements.class);
+        //Collection<ModelElementInstance> extentionElements = bpmntModel.getModelElementsByType(ExtensionElements.class);
+        List<BpmntOperation> operations = new ArrayList<BpmntOperation>();
+
+        for (ExtensionElements extensionElements: extensionElementsCollection) {
+            ModelElementInstance parent = extensionElements.getParentElement();
+
+            if (parent instanceof Process) {
+                Collection<ModelElementInstance> extensions = ((Process) parent).getExtensionElements().getElements();
+
+                for (ModelElementInstance extension: extensions) {
+                    String operationName = extension.getElementType().getTypeName();
+
+                    if (operationName.equals(Extend.class.getSimpleName())) {
+                        Extend extend = new Extend(extension.getAttributeValue(BpmntExtensionAttributes.BASE_PROCESS_ID));
+                        extend.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(extend);
+                    }
+                    else if (operationName.equals(Suppress.class.getSimpleName())) {
+                        Suppress suppress = new Suppress(extension.getAttributeValue(BpmntExtensionAttributes.SUPPRESSED_ELEMENT_ID));
+                        suppress.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(suppress);
+                    }
+                    else if (operationName.equals(Modify.class.getSimpleName())) {
+                        Modify modify = new Modify(
+                                extension.getAttributeValue(BpmntExtensionAttributes.MODIFIED_ELEMENT_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.PROPERTY),
+                                extension.getAttributeValue(BpmntExtensionAttributes.VALUE)
+                        );
+                        modify.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(modify);
+                    }
+                    else if (operationName.equals(Rename.class.getSimpleName())) {
+                        Rename rename = new Rename(
+                                extension.getAttributeValue(BpmntExtensionAttributes.ELEMENT_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.NEW_NAME)
+                        );
+                        rename.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(rename);
+                    }
+                    else if (operationName.equals(DeleteNode.class.getSimpleName())) {
+                        DeleteNode deleteNode = new DeleteNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.NODE_ID)
+                        );
+                        deleteNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(deleteNode);
+                    }
+                    else if (operationName.equals(DeleteFragment.class.getSimpleName())) {
+                        DeleteFragment deleteFragment = new DeleteFragment(
+                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID)
+                        );
+                        deleteFragment.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(deleteFragment);
+                    }
+                    else if (operationName.equals(MoveNode.class.getSimpleName())) {
+                        MoveNode moveNode = new MoveNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.NEW_POSITION_AFTER_OF_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.NEW_POSITION_BEFORE_OF_ID)
+                        );
+                        moveNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(moveNode);
+                    }
+                    else if (operationName.equals(MoveFragment.class.getSimpleName())) {
+                        MoveFragment moveFragment = new MoveFragment(
+                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.NEW_POSITION_AFTER_OF_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.NEW_POSITION_BEFORE_OF_ID)
+                        );
+                        moveFragment.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(moveFragment);
+                    }
+                    else if (operationName.equals(Parallelize.class.getSimpleName())) {
+                        Parallelize parallelize = new Parallelize(
+                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID)
+                        );
+                        parallelize.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(parallelize);
+                    }
+                }
+            }
+            else if (parent instanceof SubProcess) {
+                if (extensionElements.getElementsQuery().count() == 1) {
+                    ModelElementInstance extension = extensionElements.getElementsQuery().singleResult();
+
+                    if (extension.getElementType().getTypeName().equals(Contribute.class.getSimpleName())) {
+                        Contribute contribute = new Contribute(((SubProcess) parent).getFlowElements().iterator().next());
+                        contribute.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(contribute);
+                    }
+                    else if (extension.getElementType().getTypeName().equals(ContributeToParent.class.getSimpleName())) {
+                        ContributeToParent contributeToParent = new ContributeToParent(
+                                extension.getAttributeValue(BpmntExtensionAttributes.PARENT_ELEMENT_ID),
+                                ((SubProcess) parent).getFlowElements().iterator().next()
+                        );
+                        contributeToParent.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(contributeToParent);
+                    }
+                    else if (extension.getElementType().getTypeName().equals(InsertNode.class.getSimpleName())) {
+                        InsertNode insertNode = new InsertNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.AFTER_OF_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.BEFORE_OF_ID),
+                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+                        );
+                        insertNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(insertNode);
+                    }
+//                    else if (extension.getElementType().getTypeName().equals(InsertFragment.class.getSimpleName())) {
+//                        InsertFragment insertFragment = new InsertFragment(
+//                                extension.getAttributeValue(BpmntExtensionAttributes.AFTER_OF_ID),
+//                                extension.getAttributeValue(BpmntExtensionAttributes.BEFORE_OF_ID),
+//                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+//                        );
+//                        insertNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+//                        operations.add(insertNode);
+//                    }
+                    else if (extension.getElementType().getTypeName().equals(ConditionalInsertNode.class.getSimpleName())) {
+                        ConditionalInsertNode conditionalInsertNode = new ConditionalInsertNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.AFTER_OF_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.BEFORE_OF_ID),
+                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next(),
+                                extension.getAttributeValue(BpmntExtensionAttributes.CONDITION),
+                                Boolean.parseBoolean(extension.getAttributeValue(BpmntExtensionAttributes.IN_LOOP))
+                        );
+                        conditionalInsertNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(conditionalInsertNode);
+                    }
+//                    else if (extension.getElementType().getTypeName().equals(ConditionalInsertNode.class.getSimpleName())) {
+//                        ConditionalInsertNode conditionalInsertNode = new ConditionalInsertNode(
+//                                extension.getAttributeValue(BpmntExtensionAttributes.AFTER_OF_ID),
+//                                extension.getAttributeValue(BpmntExtensionAttributes.BEFORE_OF_ID),
+//                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next(),
+//                                extension.getAttributeValue(BpmntExtensionAttributes.CONDITION),
+//                                Boolean.parseBoolean(extension.getAttributeValue(BpmntExtensionAttributes.IN_LOOP))
+//                        );
+//                        conditionalInsertNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+//                        operations.add(conditionalInsertNode);
+//                    }
+                    else if (extension.getElementType().getTypeName().equals(ReplaceNodeWithNode.class.getSimpleName())) {
+                        ReplaceNodeWithNode replaceNodeWithNode = new ReplaceNodeWithNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.REPLACED_NODE_ID),
+                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+                        );
+                        replaceNodeWithNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(replaceNodeWithNode);
+                    }
+//                    else if (extension.getElementType().getTypeName().equals(ReplaceNodeWithNode.class.getSimpleName())) {
+//                        ReplaceNodeWithNode replaceNodeWithNode = new ReplaceNodeWithNode(
+//                                extension.getAttributeValue(BpmntExtensionAttributes.REPLACED_NODE_ID),
+//                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+//                        );
+//                        replaceNodeWithNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+//                        operations.add(replaceNodeWithNode);
+//                    }
+                    else if (extension.getElementType().getTypeName().equals(ReplaceFragmentWithNode.class.getSimpleName())) {
+                        ReplaceFragmentWithNode replaceFragmentWithNode = new ReplaceFragmentWithNode(
+                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID),
+                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+                        );
+                        replaceFragmentWithNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+                        operations.add(replaceFragmentWithNode);
+                    }
+//                    else if (extension.getElementType().getTypeName().equals(ReplaceFragmentWithNode.class.getSimpleName())) {
+//                        ReplaceFragmentWithNode replaceFragmentWithNode = new ReplaceFragmentWithNode(
+//                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+//                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID),
+//                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+//                        );
+//                        replaceFragmentWithNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+//                        operations.add(replaceFragmentWithNode);
+//                    }
+
+                    // Split
+//                    else if (extension.getElementType().getTypeName().equals(ReplaceFragmentWithNode.class.getSimpleName())) {
+//                        ReplaceFragmentWithNode replaceFragmentWithNode = new ReplaceFragmentWithNode(
+//                                extension.getAttributeValue(BpmntExtensionAttributes.STARTING_NODE_ID),
+//                                extension.getAttributeValue(BpmntExtensionAttributes.ENDING_NODE_ID),
+//                                (FlowNode) ((SubProcess) parent).getFlowElements().iterator().next()
+//                        );
+//                        replaceFragmentWithNode.setExecutionOrder(Integer.parseInt(extension.getAttributeValue(BpmntExtensionAttributes.ORDER)));
+//                        operations.add(replaceFragmentWithNode);
+//
+                }
+            }
+
+
+//            else if (operationName.equals("Extend")) {
+//
+//            }
+        }
+
+        return operations;
     }
 
 
