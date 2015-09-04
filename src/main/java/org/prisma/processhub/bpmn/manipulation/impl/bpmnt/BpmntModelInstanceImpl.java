@@ -9,6 +9,7 @@ import org.camunda.bpm.model.xml.ModelBuilder;
 import org.camunda.bpm.model.xml.impl.ModelImpl;
 import org.camunda.bpm.model.xml.instance.DomDocument;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.impl.tailoring.TailorableBpmnModelInstanceImpl;
@@ -438,4 +439,8 @@ public class BpmntModelInstanceImpl extends TailorableBpmnModelInstanceImpl impl
                 inLoop
         );
     }
+
+	public BpmnModelInstance getBpmntModel() {
+		return Bpmnt.convertBpmntFromListToModel(bpmntLog);
+	}
 }
