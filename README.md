@@ -265,9 +265,65 @@ Remove a flow element from the model.
 TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromFile(new File("simple_diagram.bpmn"));
 
 modelInstance.suppress(flowElement);
+// It's also possible to suppress multiple flow elements at once
+Collection<FlowElement> flowElements = someLoadElementsMethod();
+modelInstance.suppress(flowElements);
+```
+
+#### 3. Contribute
+Insert a flow element in the model.
+
+```java
+TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromFile(new File("simple_diagram.bpmn"));
+
+modelInstance.contribute(flowElement);
+// It's also possible to add the new element to a specific parent
+ModelElementInstance parent = someLoadParentMethod();
+modelInstance.contribute(parent, flowElement);
+```
+
+#### 4. Modify
+Add or modify a property of a flow element.
+
+```java
+TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromFile(new File("simple_diagram.bpmn"));
+String property = "Property name";
+String value = "Property value";
+
+modelInstance.modify(flowElement, property, value);
 ```
 
 ## BPMNt
+The BPMNt is an extension of BPMN. It supports all tailoring operators, except for Extend, but the main difference is that it has an operation log. Every time a tailoring operation is executed, it's registered in the operation log. This way, it's possible to know what sequence of operations were used to generate the resulting model. Another possible use is to verify if any breaking changes were made to the base process.
 
+Example:
+```java
+TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromFile(new File("simple_diagram.bpmn"));
 
+BpmntModelInstance bpmntModelInstance = modelInstance.extend();
+bpmntModelInstance.move(targetNode, newPositionAfterOf, newPositionBeforeOf);
+bpmntModelInstance.replace(startingNode, endingNode, replacingNode);
 
+BpmnModelInstance bpmntModel = Bpmnt.convertBpmntFromListToModel(bpmntOperations);
+System.out.println(Bpmn.convertToString(bpmntModel));
+```
+
+The code above outputs a BPMN model with the following structure:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<definitions xmlns:camunda="http://activiti.org/bpmn" xmlns:ns0="http://www.processhub.net" targetNamespace="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <process id="BPMNt_Process_1" name="BPMNt_Process_1">
+    <extensionElements>
+      <ns0:Extend baseProcessId="Process_1" newProcessId="BPMNt_Process_1" order="1"/>
+      <ns0:MoveNode afterOfId="UserTask_0qz0mkl" beforeOfId="EndEvent_1i5whxc" nodeId="ScriptTask_1rseic1" order="2"/>
+    </extensionElements>
+    <subProcess id="ReplaceFragmentWithNode_3" name="ReplaceFragmentWithNode 3">
+      <extensionElements>
+        <ns0:ReplaceFragmentWithNode endingNodeId="UserTask_0qz0mkl" order="3" startingNodeId="ScriptTask_1rseic1"/>
+      </extensionElements>
+      <scriptTask id="ScriptTask_1rseic1" name="Task 1"/>
+    </subProcess>
+  </process>
+</definitions>
+```
