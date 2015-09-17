@@ -35,7 +35,7 @@ public class Extend extends BpmntOperation {
     public void execute(BpmnModelInstance modelInstance) {
         // Check if model instance to be extended is the same the operation was intended to
         Process process = BpmnElementSearcher.findFirstProcess(modelInstance);
-        BpmnHelper.checkInvalidArgument(baseProcessId.equals(process.getId()),
+        BpmnHelper.checkInvalidArgument(!baseProcessId.equals(process.getId()),
                                         "Can't extend process in modelInstance. Process id doesn't match baseProcessId");
         // Set the new id for the extended process
         process.setId(newProcessId);
