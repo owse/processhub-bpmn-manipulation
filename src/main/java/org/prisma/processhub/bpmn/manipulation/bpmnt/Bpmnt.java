@@ -24,8 +24,10 @@ import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.*;
 import org.prisma.processhub.bpmn.manipulation.bpmnt.operation.constant.BpmntExtensionAttributes;
 import org.prisma.processhub.bpmn.manipulation.util.BpmnElementSearcher;
+import org.prisma.processhub.bpmn.manipulation.util.BpmnHelper;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,6 +38,25 @@ public class Bpmnt {
     private BpmntParser bpmntParser = new BpmntParser();
     private final ModelBuilder bpmntModelBuilder = ModelBuilder.createInstance("Tailorable BPMN Model");
     private Model BpmntModel;
+
+//    public static BpmnModelInstance executeBpmnt (BpmnModelInstance modelInstance, List<BpmntOperation> bpmntList) {
+//
+//        Extend extend = null;
+//
+//        for (BpmntOperation op: bpmntList) {
+//            if (op instanceof Extend) {
+//                extend = (Extend) op;
+//                break;
+//            }
+//        }
+//
+//        if (extend == null) {
+//            return null;
+//        }
+//
+//
+//        return modelInstance;
+//    }
 
     public static BpmnModelInstance convertBpmntFromListToModel (List<BpmntOperation> bpmntList) {
 
@@ -270,6 +291,21 @@ public class Bpmnt {
         return operations;
     }
 
+    public static BpmntModelInstance readModelAndBpmntFromStrings(String modelXml, String bpmntXml) {
+        BpmntModelInstance model = readModelFromStream(new ByteArrayInputStream(modelXml.getBytes(StandardCharsets.UTF_8)));
+        BpmnModelInstance bpmntModel = readModelFromStream(new ByteArrayInputStream(bpmntXml.getBytes(StandardCharsets.UTF_8)));
+
+        model.setBpmntLog(convertBpmntFromModelToList(bpmntModel));
+        for (BpmntOperation op: model.getBpmntLog()) {
+            if (op instanceof Extend) {
+                BpmnHelper.checkInvalidArgument(
+                        !(((Extend) op).getBaseProcessId().equals(BpmnElementSearcher.findFirstProcess(model).getId())),
+                        "Extended base process should be the same as the process from the received model"
+                );
+            }
+        }
+        return model;
+    }
 
     public static BpmntModelInstance readModelFromFile(File file) {
         return INSTANCE.doReadModelFromFile(file);

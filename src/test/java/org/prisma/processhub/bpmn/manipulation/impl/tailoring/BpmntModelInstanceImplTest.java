@@ -102,8 +102,8 @@ public class BpmntModelInstanceImplTest {
     @Test
     public void replace() {
         BpmntModelInstance tailoredModel = originalModel.extend();
-        FlowNode after = originalModel.getModelElementById("UserTask_0qz0mkl");
-        FlowNode before = originalModel.getModelElementById("ScriptTask_1rseic1");
+        FlowNode before = originalModel.getModelElementById("UserTask_0qz0mkl");
+        FlowNode after = originalModel.getModelElementById("ScriptTask_1rseic1");
         assert(after != null);
         assert(before != null);
         tailoredModel.replace(after, before, fragmentModel);

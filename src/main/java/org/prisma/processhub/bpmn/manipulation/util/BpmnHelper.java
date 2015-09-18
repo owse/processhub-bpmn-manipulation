@@ -1,23 +1,8 @@
 package org.prisma.processhub.bpmn.manipulation.util;
 
-import org.camunda.bpm.model.bpmn.Bpmn;
-import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.*;
-import org.camunda.bpm.model.bpmn.instance.Process;
-import org.camunda.bpm.model.xml.ModelInstance;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
-import org.prisma.processhub.bpmn.manipulation.bpmnt.Bpmnt;
-import org.prisma.processhub.bpmn.manipulation.bpmnt.BpmntModelInstance;
+import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.prisma.processhub.bpmn.manipulation.exception.ElementNotFoundException;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmn;
-import org.prisma.processhub.bpmn.manipulation.tailoring.TailorableBpmnModelInstance;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-
-/**
- * Created by renan on 8/3/15.
- */
 public final class BpmnHelper {
     private BpmnHelper() {}
 
