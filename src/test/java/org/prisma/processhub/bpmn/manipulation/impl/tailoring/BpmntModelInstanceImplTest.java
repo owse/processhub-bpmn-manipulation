@@ -149,7 +149,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(initialNumberFlowNodes - fragment.size(), tailoredModel.getModelElementsByType(FlowNode.class).size());
 
         // Verify model consistency with Camunda API
-        TailorableBpmn.validateModel(tailoredModel);
+        Bpmnt.validateModel(tailoredModel);
         
         
         System.out.println("\n\n############## Original Model: ##############");
@@ -185,7 +185,7 @@ public class BpmntModelInstanceImplTest {
         assertEquals(succeedingNode, newTask.getSucceedingNodes().singleResult());
         assertEquals(replacingTask.getId(), newTask.getId());
 
-       TailorableBpmn.validateModel(tailoredModel);
+        Bpmnt.validateModel(tailoredModel);
         
         System.out.println("\n\n############## Original Model: ##############");
         System.out.println(Bpmn.convertToString(originalModel));
