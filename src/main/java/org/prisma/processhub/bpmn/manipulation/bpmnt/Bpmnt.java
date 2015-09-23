@@ -299,8 +299,8 @@ public class Bpmnt {
         for (BpmntOperation op: model.getBpmntLog()) {
             if (op instanceof Extend) {
                 BpmnHelper.checkInvalidArgument(
-                        !(((Extend) op).getBaseProcessId().equals(BpmnElementSearcher.findFirstProcess(model).getId())),
-                        "Extended base process should be the same as the process from the received model"
+                        !(((Extend) op).getNewProcessId().equals(BpmnElementSearcher.findFirstProcess(model).getId())),
+                        "Incorrect BPMNt for target process ID"
                 );
             }
         }
