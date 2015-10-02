@@ -25,6 +25,8 @@ public interface BpmntModelInstance extends BpmnModelInstance {
     int getNumberOperations();
     void init(Extend extend);
     void execute(BpmntOperation operation);
+    void execute(List<BpmntOperation> operations);
+    void executeOwnBpmnt();
 
     // Low-level operations
     /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

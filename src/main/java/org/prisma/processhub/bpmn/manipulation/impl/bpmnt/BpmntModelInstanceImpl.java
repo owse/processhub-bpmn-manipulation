@@ -73,6 +73,38 @@ public class BpmntModelInstanceImpl extends BpmnModelInstanceImpl implements Bpm
         addOperation(operation);
     }
 
+    public void execute(List<BpmntOperation> operations) {
+
+        if (operations == null) {
+            return;
+        }
+
+        for (int i = 1; i < operations.size() + 1; i++) {
+            for (BpmntOperation op: operations) {
+                if (op.getExecutionOrder() == i) {
+                    execute(op);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void executeOwnBpmnt() {
+
+        if (bpmntLog == null) {
+            return;
+        }
+
+        for (int i = 1; i < bpmntLog.size() + 1; i++) {
+            for (BpmntOperation op: bpmntLog) {
+                if (op.getExecutionOrder() == i) {
+                    op.execute(this);
+                    break;
+                }
+            }
+        }
+    }
+
     // Useful operations that extend BpmnModelInstance features
     public boolean contains (FlowElement element) {
         return BpmnElementHandler.contains(this, element);

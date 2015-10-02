@@ -296,14 +296,7 @@ public class Bpmnt {
         BpmnModelInstance bpmntModel = readModelFromStream(new ByteArrayInputStream(bpmntXml.getBytes(StandardCharsets.UTF_8)));
 
         model.setBpmntLog(convertBpmntFromModelToList(bpmntModel));
-        for (BpmntOperation op: model.getBpmntLog()) {
-            if (op instanceof Extend) {
-                BpmnHelper.checkInvalidArgument(
-                        !(((Extend) op).getNewProcessId().equals(BpmnElementSearcher.findFirstProcess(model).getId())),
-                        "Incorrect BPMNt for target process ID"
-                );
-            }
-        }
+
         return model;
     }
 
