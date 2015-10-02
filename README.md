@@ -2,6 +2,7 @@
 
 ## Table of contents
 - [Introduction](#introduction)
+- [Installation](#installation)
 - [Composition Operators](#composition-operators)
 	- [1. Serial Composition](#1-serial-composition)
 	- [2. Parallel Composition](#2-parallel-composition)
@@ -28,6 +29,32 @@
 Processhub API to manipulate BPMN processes. This API provides custom operators for tailoring and process composition by extending the camunda-bpmn-model functions to offer the required operators. It also offers a BPMNt implementation, which can be viewed as a "process tailoring log".
 
 For every operator, the BPMN models will be represented as an instance of the class BpmnModelInstance from Camunda's API or its extensions (TailorableBpmnModelInstance and BpmntModelInstance).
+
+## Installation
+To install, simply add the following to your project's pom.xml:
+
+```xml
+<repositories>
+	...
+	<repository>
+		<id>jitpack.io</id>
+		<url>https://jitpack.io</url>
+	</repository>
+	...
+</repositories>
+
+<dependencies>
+	...
+	<dependency>
+		<groupId>com.github.owse</groupId>
+		<artifactId>processhub-bpmn-manipulation</artifactId>
+		<version>-SNAPSHOT</version>
+	</dependency>
+	...
+</dependencies>
+```
+
+The '-SNAPSHOT' version will fetch the latest commit in the master branch. The version can also be a version tag (currently not available), or a short commit hash (eg. 9a6e0eb1f3).
 
 ## Composition Operators
 
@@ -294,9 +321,12 @@ modelInstance.modify(flowElement, property, value);
 ```
 
 ## BPMNt
-The BPMNt is an extension of BPMN. It supports all tailoring operators, except for Extend, but the main difference is that it has an operation log. Every time a tailoring operation is executed, it's registered in the operation log. This way, it's possible to know what sequence of operations were used to generate the resulting model. Another possible use is to verify if any breaking changes were made to the base process.
+The BPMNt is an extension of BPMN, with support to tailoring operations, except for the Extend operation. The main difference of BPMNt from the TailorableBPMN is that it contains an operation log that registers every operation executed. Possible uses are:
+- To verify the exact sequence of operations executed to generate the resulting model;
+- In case that the base process changes, to verify if any breaking changes were made;
+- To replay the operations made to the base process.
 
-Example:
+Basic usage example:
 ```java
 TailorableBpmnModelInstance modelInstance = TailorableBpmn.readModelFromFile(new File("simple_diagram.bpmn"));
 
@@ -304,7 +334,7 @@ BpmntModelInstance bpmntModelInstance = modelInstance.extend();
 bpmntModelInstance.move(targetNode, newPositionAfterOf, newPositionBeforeOf);
 bpmntModelInstance.replace(startingNode, endingNode, replacingNode);
 
-BpmnModelInstance bpmntModel = Bpmnt.convertBpmntFromListToModel(bpmntOperations);
+BpmnModelInstance bpmntModel = bpmntModelInstance.getBpmntModel();
 System.out.println(Bpmn.convertToString(bpmntModel));
 ```
 
@@ -326,4 +356,20 @@ The code above outputs a BPMN model with the following structure:
     </subProcess>
   </process>
 </definitions>
+```
+
+If there is already a BPMN with a BPMNt associated, they can be loaded directly with:
+
+```java
+BpmntModelInstance modelInstance = Bpmnt.readModelAndBpmntFromStrings(modelXml, bpmntXml);
+```
+
+Another possibility is to replay the BPMNt on the base process. The following code accomplishes this:
+
+```java
+// Load the base model and the BPMNt
+BpmntModelInstance modelInstance = Bpmnt.readModelAndBpmntFromStrings(baseModelXml, bpmntXml);
+
+// Replay the BPMNt operations
+modelInstance.executeOwnBpmnt();
 ```
